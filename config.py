@@ -1,0 +1,23 @@
+# config.py
+import os
+TOKEN = os.getenv("HR_TOKEN")
+ROOM_ID = os.getenv("HR_ROOM_ID")
+
+API_TOKEN = "04283e4c562763702122cebce3ccf27689e0d61cd2b44b2acd03d548c7b90cbb"
+API_KEY = "04283e4c562763702122cebce3ccf27689e0d61cd2b44b2acd03d548c7b90cbb"
+ROOM_ID = "6a27ac89e858fd2002302b10"
+
+BOT_NAME = "MyHighriseBot"
+PREFIX = "/"
+
+# 👑 OWNER SETUP
+OWNER_USERNAME = "saim06" 
+
+# 🚫 MODERATION SETTINGS
+BANNED_WORDS = ["badword1", "badword2", "toxicword"]
+DYNAMIC_BANNED_USERS = [] 
+
+# 📍 SPAWN POINT
+SPAWN_X = 0
+SPAWN_Y = 0
+SPAWN_Z = 0

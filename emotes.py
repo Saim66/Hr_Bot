@@ -61,5 +61,5 @@ EMOTE_DICT = {
     "cozy" : "idle-floorsleeping",
     "cozy2" : "idle-floorsleeping2",
     "smooch": "emote-kissing",
-
+    "star": "emote-threadexchange-star",
 }

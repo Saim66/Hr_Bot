@@ -46,14 +46,15 @@ class CommandHandler:
             await self.bot.highrise.chat(f"✅ @{user.username}, your welcome message is set!")
             return
 
-        # --- 1. STOP COMMAND (Changed from 's' to '/stop') ---
-        if trigger in ["/stop", "/0"]:
+        # --- 2. STOP COMMAND (No prefix) ---
+        # Now you can just type 'stop' or '0' in chat
+        if trigger in ["stop", "0"]:
             self.looping_users.pop(user.id, None)
             await self.bot.highrise.chat(f"🛑 @{user.username}, stopped your emote loop.")
             return
 
         # --- 2. SUMMON COMMAND (/s @user) (Owner Only) ---
-        if trigger == "s" and is_vip and args:
+        if trigger == "/s" and is_vip and args:
             target_name = args[0].replace("@", "").lower()
             room_users = (await self.bot.highrise.get_room_users()).content
             owner_pos = next((p for r, p in room_users if r.id == user.id), None)
@@ -80,7 +81,7 @@ class CommandHandler:
             return
 
         # --- OWNER: MANAGE VIP ---
-        if trigger == "/addvip" and is_owner and args:
+        if trigger == "/vip" and is_owner and args:
             vip_name = args[0].replace("@", "").lower()
             if vip_name not in self.data["vips"]:
                 self.data["vips"].append(vip_name)
@@ -89,7 +90,7 @@ class CommandHandler:
             return
         
         # --- OWNER: LIST ALL VIPS ---
-        if trigger == "/listvip" and is_owner:
+        if trigger == "/lvip" and is_owner:
             if not self.data["vips"]:
                 await self.bot.highrise.chat("💎 The VIP list is currently empty.")
             else:
@@ -99,7 +100,7 @@ class CommandHandler:
             return
         
         # --- OWNER: REMOVE VIP ---
-        if trigger == "/delvip" and is_owner and args:
+        if trigger == "/dvip" and is_owner and args:
             vip_name = args[0].replace("@", "").lower()
             if vip_name in self.data["vips"]:
                 self.data["vips"].remove(vip_name)
@@ -122,7 +123,7 @@ class CommandHandler:
             return
 
         # --- OWNER: SAVE AND RESTRICT LOCATION ---
-        if trigger == "/ownergo" and is_owner and args:
+        if trigger == "/own" and is_owner and args:
             loc_name = args[0].lower()
             
             # Get your current position

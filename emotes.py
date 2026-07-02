@@ -38,7 +38,7 @@ EMOTE_DICT = {
     "space": "idle-space",
     "teleport": "emote-teleporting",
     "levitate": "emote-levitate",
-    "ghost": "emote-ghost",
+    "ghost": "emote-ghost-idle",
     "ghostfloat": "emote-ghost-idle", 
     "laid": "sit-idle-laidback",
     "relaxing": "emote-relaxed",
@@ -62,4 +62,8 @@ EMOTE_DICT = {
     "cozy2" : "idle-floorsleeping2",
     "smooch": "emote-kissing",
     "star": "emote-threadexchange-star",
+    "enthus": "idle-enthusiastic",
+    "repose": "sit-relaxed",
+    "attentive": "idle-layingdown",
+    "spider": "emote-spiderman",
 }

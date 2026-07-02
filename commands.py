@@ -8,6 +8,9 @@ from emotes import EMOTE_DICT
 class CommandHandler:
     def __init__(self, bot):
         self.bot = bot
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        self.loc_file = os.path.join(base_dir, "locations.json")
+        self.data_file = os.path.join(base_dir, "bot_data.json")
         self.loc_file = "locations.json"
         self.data_file = "bot_data.json"
         self.looping_users = {}
@@ -36,8 +39,13 @@ class CommandHandler:
             json.dump(self.locations, f, indent=4)
 
     def save_data(self):
-        with open(self.data_file, "w") as f:
-            json.dump(self.data, f, indent=4)
+        try:
+            with open(self.data_file, "w") as f:
+                json.dump(self.data, f, indent=4)
+            print(f"DEBUG: Successfully wrote to {self.data_file}")
+            print(f"DEBUG: Current Data: {self.data}")
+        except Exception as e:
+            print(f"DEBUG: ERROR SAVING FILE: {e}")
 
     async def execute(self, user, message: str) -> None:
         if not user: return

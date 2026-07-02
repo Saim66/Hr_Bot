@@ -2,18 +2,18 @@ import os
 import asyncio
 import logging
 from dotenv import load_dotenv
-from highrise import BaseBot
+from highrise import BaseBot, Highrise
 from commands import CommandHandler
 from telegram.ext import ApplicationBuilder, CommandHandler as TG_Cmd
 
-# Configure logging to see events in Railway console
+# Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Load config
 load_dotenv()
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+ROOM_ID = os.getenv("ROOM_ID")
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
-# Using the fallback provided in your previous message
 YOUR_TELEGRAM_ID = int(os.getenv("YOUR_TELEGRAM_ID", "7241289551"))
 
 class Bot(BaseBot):
@@ -22,50 +22,31 @@ class Bot(BaseBot):
         self.cmd = CommandHandler(self)
 
     async def on_start(self, session_metadata) -> None:
+        # Combined and cleaned up startup logs
+        print("DEBUG: on_start triggered", flush=True)
         logger.info(f"✅ Highrise Bot Online! Room: {session_metadata.room_info.room_name}")
-        # Start Telegram as a background task
         asyncio.create_task(self.start_telegram())
 
     async def start_telegram(self):
-        """Initializes the Telegram remote control."""
-        if not TELEGRAM_TOKEN:
-            logger.error("❌ TELEGRAM_TOKEN not found! Telegram controller will not start.")
-            return
-
+        # ... (keep your existing Telegram logic here) ...
         try:
             app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
-
-            async def tp_from_telegram(update, context):
-                if update.effective_user.id != YOUR_TELEGRAM_ID:
-                    return
-                
-                if context.args:
-                    cmd_name = context.args[0]
-                    logger.info(f"📱 Telegram command received: {cmd_name}")
-                    await self.highrise.chat(f"📱 Executing: {cmd_name}")
-                    await self.cmd.execute(None, cmd_name)
-
-            app.add_handler(TG_Cmd("tp", tp_from_telegram))
-            
-            logger.info("🚀 Initializing Telegram Controller...")
+            # ... (add handlers) ...
             await app.initialize()
             await app.start()
             await app.updater.start_polling()
             logger.info("✅ Telegram Controller Online and polling.")
-            
         except Exception as e:
             logger.error(f"❌ Telegram Controller failed to start: {e}")
 
     async def on_chat(self, user, message: str) -> None:
-        logger.info(f"💬 Chat from {user.username}: {message}")
         await self.cmd.execute(user, message)
 
-    async def on_user_join(self, user) -> None:
-        logger.info(f"👤 User joined: {user.username}")
+# --- THIS IS THE MISSING PART ---
+async def main():
+    bot = Bot()
+    async with Highrise() as h:
+        await h.run(BOT_TOKEN, ROOM_ID, bot)
 
-# This part is handled by the SDK, but ensure your Procfile runs the command correctly
-    
-    async def on_start(self, session_metadata) -> None:
-        print("DEBUG: on_start triggered", flush=True)
-        logger.info(f"✅ Highrise Bot Online! Room: {session_metadata.room_info.room_name}")
-        asyncio.create_task(self.start_telegram())
+if __name__ == "__main__":
+    asyncio.run(main())

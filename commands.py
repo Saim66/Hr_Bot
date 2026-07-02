@@ -8,25 +8,34 @@ from emotes import EMOTE_DICT
 class CommandHandler:
     def __init__(self, bot):
         self.bot = bot
-        self.looping_users = {}
-        self.data_file = "bot_data.json"
         self.loc_file = "locations.json"
+        self.data_file = "bot_data.json"
+        
+        # These methods must exist for these lines to work!
         self.locations = self.load_locations()
         self.data = self.load_data()
-        self.data = {"vips": [], "welcomes": {}, "restricted": []}
-        self.load_data()
+
+    # --- Add these methods INSIDE the class ---
+    def load_locations(self):
+        if os.path.exists(self.loc_file):
+            with open(self.loc_file, "r") as f:
+                try: return json.load(f)
+                except: return {}
+        return {}
 
     def load_data(self):
-        if os.path.exists("bot_data.json"):
-            with open("bot_data.json", "r") as f:
-                try:
-                    return json.load(f)
-                except:
-                    return {"vips": [], "restricted": [], "welcomes": {}}
-        return {"vips": [], "restricted": [], "welcomes": {}}
+        if os.path.exists(self.data_file):
+            with open(self.data_file, "r") as f:
+                try: return json.load(f)
+                except: return {"vips": [], "restricted": []}
+        return {"vips": [], "restricted": []}
+
+    def save_locations(self):
+        with open(self.loc_file, "w") as f:
+            json.dump(self.locations, f, indent=4)
 
     def save_data(self):
-        with open("bot_data.json", "w") as f:
+        with open(self.data_file, "w") as f:
             json.dump(self.data, f, indent=4)
 
     async def execute(self, user, message: str) -> None:

@@ -23,7 +23,6 @@ class Bot(BaseBot):
 
     async def on_start(self, session_metadata) -> None:
         logger.info(f"✅ Highrise Bot Online! Room: {session_metadata.room_info.room_name}")
-        asyncio.create_task(self.start_telegram())
         asyncio.create_task(self.emote_engine())
 
     # Inside main.py - emote_engine loop

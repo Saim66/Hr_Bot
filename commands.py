@@ -47,6 +47,14 @@ class CommandHandler:
         except Exception as e:
             print(f"DEBUG: ERROR SAVING FILE: {e}")
 
+    def add_vip(self, user_name):
+        user_name = user_name.replace("@", "").lower()
+        if user_name not in self.data["vips"]:
+            self.data["vips"].append(user_name)
+            self.save_data() # <--- Calling this triggers the write
+            return True
+        return False        
+
     async def execute(self, user, message: str) -> None:
         if not user: return
         msg = message.strip()
@@ -69,10 +77,16 @@ class CommandHandler:
             await self.bot.highrise.chat(f"✅ @{user.username}, your welcome message is set!")
             return
 
-        # --- 2. STOP COMMAND (No prefix) ---
-        # Now you can just type 'stop' or '0' in chat
+        # --- 2. STOP COMMAND ---
         if trigger in ["stop", "0"]:
+            # 1. Remove them from the tracking dictionary immediately
             self.looping_users.pop(user.id, None)
+            
+            # 2. Tell the Highrise API to stop the current emote
+            # This sends an empty string or "stop" to clear the emote loop
+            await self.bot.highrise.send_emote("idle", user.id)
+            
+            # 3. Inform the user
             await self.bot.highrise.chat(f"🛑 @{user.username}, stopped your emote loop.")
             return
 
@@ -103,13 +117,16 @@ class CommandHandler:
                 await self.bot.highrise.chat(f"❌ User @{target_name} not found.")
             return
 
-        # --- OWNER: MANAGE VIP ---
-        if trigger == "/vip" and is_owner and args:
-            vip_name = args[0].replace("@", "").lower()
-            if vip_name not in self.data["vips"]:
-                self.data["vips"].append(vip_name)
-                self.save_data()
-                await self.bot.highrise.chat(f"✅ @{vip_name} is now a VIP!")
+        # Example of how your command trigger should look:
+        if trigger == "/addvip" and is_owner and args:
+            vip_name = args[0]
+            # Call the function you just created
+            success = self.add_vip(vip_name) 
+            
+            if success:
+                await self.bot.highrise.chat(f"✅ @{vip_name} added to VIP list.")
+            else:
+                await self.bot.highrise.chat(f"⚠️ @{vip_name} is already a VIP.")
             return
         
         # --- OWNER: LIST ALL VIPS ---

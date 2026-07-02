@@ -26,15 +26,15 @@ class Bot(BaseBot):
         asyncio.create_task(self.start_telegram())
         asyncio.create_task(self.emote_engine())
 
-    async def emote_engine(self):
-        while True:
-            if self.cmd.looping_users:
-                for user_id, emote_id in list(self.cmd.looping_users.items()):
-                    try:
-                        await self.highrise.send_emote(emote_id, user_id)
-                    except Exception as e:
-                        logger.warning(f"Emote loop error for {user_id}: {e}")
-            await asyncio.sleep(5)
+    # Inside main.py - emote_engine loop
+async def emote_engine(self):
+    while True:
+        # Get a copy of the dictionary to avoid 'dictionary size changed' errors
+        for user_id, official_id in list(self.cmd.looping_users.items()):
+            # If the user was removed, this loop will naturally skip them
+            await self.bot.highrise.send_emote(official_id, user_id)
+            await asyncio.sleep(2) # adjust delay as needed
+        await asyncio.sleep(1)
 
     async def start_telegram(self):
         if not TELEGRAM_TOKEN: return

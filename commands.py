@@ -9,131 +9,109 @@ class CommandHandler:
     def __init__(self, bot):
         self.bot = bot
         self.looping_users = {}
+        self.data_file = "bot_data.json"
+        self.loc_file = "locations.json"
+        self.data = {"vips": [], "welcomes": {}, "restricted": []}
+        self.load_data()
+
+    def load_data(self):
+        if os.path.exists(self.data_file):
+            with open(self.data_file, "r") as f:
+                try: self.data = json.load(f)
+                except: pass
+
+    def save_data(self):
+        with open(self.data_file, "w") as f:
+            json.dump(self.data, f, indent=4)
 
     async def execute(self, user, message: str) -> None:
+        if not user: return
         msg = message.strip()
-        if not msg: return
-        is_owner = user.username.lower() == config.OWNER_USERNAME.lower()
         parts = msg.split()
         trigger = parts[0].lower()
         args = parts[1:]
+        
+        is_owner = user.username.lower() == config.OWNER_USERNAME.lower()
+        is_vip = user.username.lower() in self.data.get("vips", []) or is_owner
 
-
-
-        # --- DIRECT TELEPORT (No Prefix) ---
-        if os.path.exists("locations.json"):
-            with open("locations.json", "r", encoding="utf-8") as f: 
-                try: data = json.load(f)
-                except: data = {}
-            
-            if trigger in data:
-                l = data[trigger]
-                # target_pos is the destination
-                target_pos = Position(float(l['x']), float(l['y']), float(l['z']), l['facing'])
-                
-                try:
-                    # user.id teleports the PERSON who typed the command
-                    await self.bot.highrise.teleport(user.id, target_pos)
-                    await self.bot.highrise.chat(f"🚀 Teleporting @{user.username} to {trigger}!")
-                except Exception as e:
-                    print(f"Teleport Error: {e}")
-                    await self.bot.highrise.chat(f"❌ Failed to teleport you. Check permissions.")
-                return
-
-        # --- 1. ADMIN COMMANDS (Prefix: /) ---
-        if trigger.startswith(config.PREFIX):
-            cmd = trigger[len(config.PREFIX):]
-
-            if is_owner:
-                # /set [name]
-                if cmd == "set" and args:
-                    loc_name = args[0].lower()
-                    room_users = (await self.bot.highrise.get_room_users()).content
-                    pos = next((p for r, p in room_users if r.id == user.id), None)
-                    if pos:
-                        data = {}
-                        if os.path.exists("locations.json"):
-                            with open("locations.json", "r", encoding="utf-8") as f:
-                                try: data = json.load(f)
-                                except: pass
-                        data[loc_name] = {"x": pos.x, "y": pos.y, "z": pos.z, "facing": pos.facing}
-                        with open("locations.json", "w", encoding="utf-8") as f:
-                            json.dump(data, f, indent=4)
-                        await self.bot.highrise.chat(f"💾 Saved location as '{loc_name}'.")
-                    return
-
-                # /del [name]
-                elif cmd == "del" and args:
-                    loc_name = args[0].lower()
-                    if os.path.exists("locations.json"):
-                        with open("locations.json", "r", encoding="utf-8") as f: data = json.load(f)
-                        if loc_name in data:
-                            del data[loc_name]
-                            with open("locations.json", "w", encoding="utf-8") as f: json.dump(data, f, indent=4)
-                            await self.bot.highrise.chat(f"🗑️ Deleted location '{loc_name}'.")
-                        else:
-                            await self.bot.highrise.chat(f"ℹ️ Location '{loc_name}' not found.")
-                    return
-                
-                # /s [user]
-                elif cmd == "s" and args:
-                    target = args[0].replace("@", "").lower()
-                    room_users = (await self.bot.highrise.get_room_users()).content
-                    owner_pos = next((pos for r, pos in room_users if r.id == user.id), None)
-                    for r, _ in room_users:
-                        if r.username.lower() == target and owner_pos:
-                            await self.bot.highrise.teleport(r.id, owner_pos)
-                            await self.bot.highrise.chat(f"✨ Summoned @{target} to your side!")
-                            return
-                    await self.bot.highrise.chat(f"❌ User @{target} not found.")
-                    return
+        # --- HELP ---
+        if trigger == "/help":
+            await self.bot.highrise.chat(f"📜 @{user.username}, available: /welcome [msg], /stop. VIPs: /to @user. Owner: /addvip, /kick, /ban, /ownergo [name]")
             return
 
-        
+        # --- CUSTOM WELCOME ---
+        if trigger == "/welcome" and args:
+            self.data["welcomes"][user.username.lower()] = " ".join(args)
+            self.save_data()
+            await self.bot.highrise.chat(f"✅ @{user.username}, your welcome message is set!")
+            return
 
-        # --- 3. EMOTE / LOOP ENGINE ---
+        # --- STOP EMOTE ---
+        if trigger in ["/stop", "stop", "s", "0"]:
+            self.looping_users.pop(user.id, None)
+            await self.bot.highrise.chat(f"🛑 @{user.username}, emote loop stopped.")
+            return
+
+        # --- VIP: TELEPORT TO USER ---
+        if trigger == "/to" and is_vip and args:
+            target_name = args[0].replace("@", "").lower()
+            room_users = (await self.bot.highrise.get_room_users()).content
+            target = next((r for r, _ in room_users if r.username.lower() == target_name), None)
+            if target:
+                pos = next((p for r, p in room_users if r.id == target.id), None)
+                await self.bot.highrise.teleport(user.id, pos)
+                await self.bot.highrise.chat(f"🚀 Teleporting @{user.username} to @{target.username}")
+            else:
+                await self.bot.highrise.chat(f"❌ User @{target_name} not found.")
+            return
+
+        # --- OWNER: MANAGE VIP ---
+        if trigger == "/addvip" and is_owner and args:
+            vip_name = args[0].replace("@", "").lower()
+            if vip_name not in self.data["vips"]:
+                self.data["vips"].append(vip_name)
+                self.save_data()
+                await self.bot.highrise.chat(f"✅ @{vip_name} is now a VIP!")
+            return
+
+        # --- OWNER: MODERATION ---
+        if trigger in ["/kick", "/ban"] and is_owner and args:
+            target_name = args[0].replace("@", "").lower()
+            room_users = (await self.bot.highrise.get_room_users()).content
+            target = next((r for r, _ in room_users if r.username.lower() == target_name), None)
+            if target:
+                mode = "kick" if trigger == "/kick" else "ban"
+                await self.bot.highrise.moderate_room(target.id, mode)
+                await self.bot.highrise.chat(f"🚫 @{target.username} has been {mode}ed by @{user.username}")
+            return
+
+        # --- OWNER: RESTRICTED LOCATION ---
+        if trigger == "/ownergo" and is_owner and args:
+            loc_name = args[0].lower()
+            if loc_name not in self.data["restricted"]:
+                self.data["restricted"].append(loc_name)
+                self.save_data()
+            await self.bot.highrise.chat(f"🔒 '{loc_name}' is now a restricted Owner spot!")
+            return
+
+        # --- EMOTE ENGINE ---
         if trigger in EMOTE_DICT or trigger.startswith(("emote-", "gacha-")):
             official_id = EMOTE_DICT.get(trigger, trigger)
-            target_id = user.id
-            target_name = user.username
-
-            if args:
-                target_name = args[0].replace("@", "").lower()
-                room_users = (await self.bot.highrise.get_room_users()).content
-                found = next((r for r, _ in room_users if r.username.lower() == target_name), None)
-                if found:
-                    target_id = found.id
-                else:
-                    await self.bot.highrise.chat(f"❌ User @{target_name} not found.")
-                    return
-            
-            self.looping_users[target_id] = official_id
-            await self.bot.highrise.send_emote(official_id, target_id)
-            await self.bot.highrise.chat(f"💃 Emote loop started for @{target_name}!")
+            self.looping_users[user.id] = official_id
+            await self.bot.highrise.send_emote(official_id, user.id)
+            await self.bot.highrise.chat(f"💃 Starting emote for @{user.username}!")
             return
 
-        # 4. STOP LOOP
-        if trigger in ["stop", "s", "0"]:
-            if user.id in self.looping_users:
-                self.looping_users.pop(user.id, None)
-                await self.bot.highrise.chat(f"🛑 Stopped your emote loop.")
-
-        # --- 2. DIRECT TELEPORT (No Prefix) ---
-        if os.path.exists("locations.json"):
-            with open("locations.json", "r", encoding="utf-8") as f: 
-                try: data = json.load(f)
-                except: data = {}
-            
-            if trigger in data:
-                l = data[trigger]
-                # Force the coordinate objects
+        # --- DIRECT LOCATION TELEPORT ---
+        if os.path.exists(self.loc_file):
+            with open(self.loc_file, "r") as f:
+                try: locs = json.load(f)
+                except: locs = {}
+            if trigger in locs:
+                if trigger in self.data.get("restricted", []) and not is_owner:
+                    await self.bot.highrise.chat(f"🚫 Sorry @{user.username}, that is an Owner-only area!")
+                    return
+                l = locs[trigger]
                 target_pos = Position(float(l['x']), float(l['y']), float(l['z']), l['facing'])
-                
-                # Use the bot's highrise instance directly
-                try:
-                    await self.bot.highrise.teleport(user.id, target_pos)
-                    await self.bot.highrise.chat(f"🚀 Teleporting you to {trigger}!")
-                except Exception as e:
-                    print(f"DEBUG ERROR: {e}")
-                    await self.bot.highrise.chat(f"⚠️ Error: Could not move you.")
-                return
+                await self.bot.highrise.teleport(user.id, target_pos)
+                await self.bot.highrise.chat(f"🚀 Teleporting @{user.username} to {trigger}")

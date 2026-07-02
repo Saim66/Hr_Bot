@@ -1,6 +1,7 @@
 import os
 import asyncio
 import logging
+import json
 from dotenv import load_dotenv
 from highrise import BaseBot
 from commands import CommandHandler
@@ -22,38 +23,28 @@ class Bot(BaseBot):
 
     async def on_start(self, session_metadata) -> None:
         logger.info(f"✅ Highrise Bot Online! Room: {session_metadata.room_info.room_name}")
-        # Start background tasks safely
         asyncio.create_task(self.start_telegram())
         asyncio.create_task(self.emote_engine())
 
     async def emote_engine(self):
-        """Persistent loop engine. Keeps emotes running without crashing the bot."""
         while True:
-            # We check the dict in commands.py
             if self.cmd.looping_users:
-                # Use list() to prevent 'dictionary changed size' errors
                 for user_id, emote_id in list(self.cmd.looping_users.items()):
                     try:
                         await self.highrise.send_emote(emote_id, user_id)
                     except Exception as e:
                         logger.warning(f"Emote loop error for {user_id}: {e}")
-            
-            # Wait 5 seconds before the next loop pass
             await asyncio.sleep(5)
 
     async def start_telegram(self):
-        if not TELEGRAM_TOKEN:
-            return
+        if not TELEGRAM_TOKEN: return
         try:
             app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
-            
             async def tp_from_telegram(update, context):
-                if update.effective_user.id != YOUR_TELEGRAM_ID:
-                    return
+                if update.effective_user.id != YOUR_TELEGRAM_ID: return
                 if context.args:
                     await self.highrise.chat(f"📱 Executing: {context.args[0]}")
                     await self.cmd.execute(None, context.args[0])
-            
             app.add_handler(TG_Cmd("tp", tp_from_telegram))
             await app.initialize()
             await app.start()
@@ -66,13 +57,28 @@ class Bot(BaseBot):
         await self.cmd.execute(user, message)
 
     async def on_user_join(self, user, position) -> None:
-        """
-        The SDK requires 'user' and 'position' arguments.
-        """
         logger.info(f"👤 User joined: {user.username}")
         try:
-            # Short sleep to prevent rate limiting
             await asyncio.sleep(1.5)
-            await self.highrise.chat(f"Welcome @{user.username}! 👋")
+            
+            # Load data to check for custom welcome message
+            custom_msg = None
+            if os.path.exists("bot_data.json"):
+                with open("bot_data.json", "r") as f:
+                    try:
+                        data = json.load(f)
+                        custom_msg = data.get("welcomes", {}).get(user.username.lower())
+                    except: pass
+            
+            if custom_msg:
+                await self.highrise.chat(f"@{user.username}, {custom_msg}")
+            else:
+                await self.highrise.chat(f"Welcome to the room, @{user.username}! 👋")
+                
         except Exception as e:
             logger.error(f"Error in on_user_join: {e}")
+
+    async def on_user_leave(self, user) -> None:
+        # Cleanup if user was in an emote loop
+        if user.id in self.cmd.looping_users:
+            self.cmd.looping_users.pop(user.id, None)

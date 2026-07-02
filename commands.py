@@ -53,7 +53,7 @@ class CommandHandler:
             return
 
         # --- 2. SUMMON COMMAND (/s @user) (Owner Only) ---
-        if trigger == "/s" and is_vip and args:
+        if trigger == "s" and is_vip and args:
             target_name = args[0].replace("@", "").lower()
             room_users = (await self.bot.highrise.get_room_users()).content
             owner_pos = next((p for r, p in room_users if r.id == user.id), None)
@@ -67,7 +67,7 @@ class CommandHandler:
             return
 
         # --- VIP: TELEPORT TO USER ---
-        if trigger == "/to" and is_vip and args:
+        if trigger == "to" and is_vip and args:
             target_name = args[0].replace("@", "").lower()
             room_users = (await self.bot.highrise.get_room_users()).content
             target = next((r for r, _ in room_users if r.username.lower() == target_name), None)
@@ -168,19 +168,21 @@ class CommandHandler:
             return
         
 
-        # 2. Check for the Targeted Emote (e.g., "dance @username")
-        # Now you can just type: dance @username
+        # --- TARGETED EMOTE (e.g., "laid @user") ---
+        # Normalize to lowercase so 'Laid' or 'laid' both work
         if len(parts) == 2 and parts[0].lower() in EMOTE_DICT and parts[1].startswith("@"):
             emote_name = parts[0].lower()
             target_name = parts[1].replace("@", "").lower()
             
+            # Find the user
             room_users = (await self.bot.highrise.get_room_users()).content
             target = next((r for r, _ in room_users if r.username.lower() == target_name), None)
             
             if target:
                 official_id = EMOTE_DICT.get(emote_name)
                 await self.bot.highrise.send_emote(official_id, target.id)
-                await self.bot.highrise.chat(f"💃 Performed {emote_name} on @{target.username}!")
+            else:
+                await self.bot.highrise.chat(f"❌ User @{target_name} not found.")
             return
 
         # --- DIRECT LOCATION TELEPORT ---

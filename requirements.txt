@@ -21,7 +21,7 @@ itsdangerous==2.2.0
 Jinja2==3.1.6
 MarkupSafe==3.0.3
 multidict==6.7.1
-pendulum==3.0.0
+pendulum==2.1.2
 pm2==1.0.0
 propcache==0.5.2
 python-dateutil==2.9.0.post0

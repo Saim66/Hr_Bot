@@ -121,13 +121,42 @@ class CommandHandler:
                 await self.bot.highrise.chat(f"🚫 @{target.username} has been {mode}ed by @{user.username}")
             return
 
-        # --- OWNER: RESTRICTED LOCATION ---
+        # --- OWNER: SAVE AND RESTRICT LOCATION ---
         if trigger == "/ownergo" and is_owner and args:
             loc_name = args[0].lower()
-            if loc_name not in self.data["restricted"]:
-                self.data["restricted"].append(loc_name)
-                self.save_data()
-            await self.bot.highrise.chat(f"🔒 '{loc_name}' is now a restricted Owner spot!")
+            
+            # Get your current position
+            room_users = (await self.bot.highrise.get_room_users()).content
+            my_pos = next((p for r, p in room_users if r.id == user.id), None)
+            
+            if my_pos:
+                # Load existing locations
+                if os.path.exists(self.loc_file):
+                    with open(self.loc_file, "r") as f:
+                        try: locs = json.load(f)
+                        except: locs = {}
+                else:
+                    locs = {}
+                
+                # Save the new coordinate
+                locs[loc_name] = {
+                    "x": my_pos.x,
+                    "y": my_pos.y,
+                    "z": my_pos.z,
+                    "facing": my_pos.facing
+                }
+                
+                with open(self.loc_file, "w") as f:
+                    json.dump(locs, f, indent=4)
+                
+                # Add to restricted list
+                if loc_name not in self.data["restricted"]:
+                    self.data["restricted"].append(loc_name)
+                    self.save_data()
+                
+                await self.bot.highrise.chat(f"📍 Location '{loc_name}' saved and restricted!")
+            else:
+                await self.bot.highrise.chat("❌ Could not get your current position.")
             return
 
         # --- EMOTE ENGINE ---
@@ -136,6 +165,22 @@ class CommandHandler:
             self.looping_users[user.id] = official_id
             await self.bot.highrise.send_emote(official_id, user.id)
             await self.bot.highrise.chat(f"💃 Starting emote for @{user.username}!")
+            return
+        
+
+        # 2. Check for the Targeted Emote (e.g., "dance @username")
+        # Now you can just type: dance @username
+        if len(parts) == 2 and parts[0].lower() in EMOTE_DICT and parts[1].startswith("@"):
+            emote_name = parts[0].lower()
+            target_name = parts[1].replace("@", "").lower()
+            
+            room_users = (await self.bot.highrise.get_room_users()).content
+            target = next((r for r, _ in room_users if r.username.lower() == target_name), None)
+            
+            if target:
+                official_id = EMOTE_DICT.get(emote_name)
+                await self.bot.highrise.send_emote(official_id, target.id)
+                await self.bot.highrise.chat(f"💃 Performed {emote_name} on @{target.username}!")
             return
 
         # --- DIRECT LOCATION TELEPORT ---

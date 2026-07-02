@@ -33,3 +33,4 @@ six
 typing-extensions<4.0.0
 Werkzeug
 yarl
+setuptools

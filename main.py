@@ -1,11 +1,14 @@
+import os
+from dotenv import load_dotenv
 import asyncio
 from highrise import BaseBot
 from commands import CommandHandler
 from telegram.ext import ApplicationBuilder, CommandHandler as TG_Cmd
 
 # --- CONFIGURATION ---
-TELEGRAM_TOKEN = "PASTE_YOUR_TELEGRAM_BOT_TOKEN_HERE"
-YOUR_TELEGRAM_ID = 123456789  # Replace with your numeric ID from @userinfobot
+load_dotenv()
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
+YOUR_TELEGRAM_ID = int(os.getenv("YOUR_TELEGRAM_ID"))
 
 class Bot(BaseBot):
     def __init__(self):

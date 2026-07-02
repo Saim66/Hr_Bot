@@ -68,7 +68,7 @@ class CommandHandler:
             return
 
         # --- VIP: TELEPORT TO USER ---
-        if trigger == "to" and is_vip and args:
+        if trigger == "/to" and is_vip and args:
             target_name = args[0].replace("@", "").lower()
             room_users = (await self.bot.highrise.get_room_users()).content
             target = next((r for r, _ in room_users if r.username.lower() == target_name), None)
@@ -122,42 +122,29 @@ class CommandHandler:
                 await self.bot.highrise.chat(f"🚫 @{target.username} has been {mode}ed by @{user.username}")
             return
 
-        # --- OWNER: SAVE AND RESTRICT LOCATION ---
+        # --- OWNER: SAVE LOCATION ---
         if trigger == "/own" and is_owner and args:
             loc_name = args[0].lower()
-            
-            # Get your current position
             room_users = (await self.bot.highrise.get_room_users()).content
             my_pos = next((p for r, p in room_users if r.id == user.id), None)
             
             if my_pos:
-                # Load existing locations
-                if os.path.exists(self.loc_file):
-                    with open(self.loc_file, "r") as f:
-                        try: locs = json.load(f)
-                        except: locs = {}
-                else:
-                    locs = {}
-                
-                # Save the new coordinate
-                locs[loc_name] = {
+                # Save to the locations dictionary
+                self.locations[loc_name] = {
                     "x": my_pos.x,
                     "y": my_pos.y,
                     "z": my_pos.z,
                     "facing": my_pos.facing
                 }
+                # Save to file immediately
+                self.save_locations()
                 
-                with open(self.loc_file, "w") as f:
-                    json.dump(locs, f, indent=4)
-                
-                # Add to restricted list
+                # Mark as restricted
                 if loc_name not in self.data["restricted"]:
                     self.data["restricted"].append(loc_name)
                     self.save_data()
                 
-                await self.bot.highrise.chat(f"📍 Location '{loc_name}' saved and restricted!")
-            else:
-                await self.bot.highrise.chat("❌ Could not get your current position.")
+                await self.bot.highrise.chat(f"✅ Location '{loc_name}' saved and restricted!")
             return
 
         # --- EMOTE ENGINE ---

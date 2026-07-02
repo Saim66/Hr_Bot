@@ -1,6 +1,8 @@
 import os
 import asyncio
 import logging
+from highrise import BaseBot
+from highrise import __main__
 from dotenv import load_dotenv
 from highrise import BaseBot, BotDefinition
 from commands import CommandHandler
@@ -70,5 +72,8 @@ async def main():
     # The run method manages the connection to the Highrise server
     await bot_def.run(BOT_TOKEN, ROOM_ID)
 
+# Replace the main() function and execution block with this:
 if __name__ == "__main__":
-    asyncio.run(main())
+    bot = Bot()
+    # This uses the stable, older method to start the bot
+    __main__.main(bot, BOT_TOKEN, ROOM_ID)

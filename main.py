@@ -19,22 +19,27 @@ YOUR_TELEGRAM_ID = int(os.getenv("YOUR_TELEGRAM_ID", "7241289551"))
 class Bot(BaseBot):
     def __init__(self):
         super().__init__()
+        # This connects all your commands from commands.py
         self.cmd = CommandHandler(self)
 
     async def on_start(self, session_metadata): 
         logger.info(f"✅ Highrise Bot Online! Room: {session_metadata.room_info.room_name}")
-        # Assuming your command handler is named 'cmd' in your Bot class
-        asyncio.create_task(self.cmd.emote_engine())
+        # Start background tasks
+        asyncio.create_task(self.emote_engine())
+        asyncio.create_task(self.start_telegram())
 
-    # Inside main.py - emote_engine loop
-async def emote_engine(self):
-    while True:
-        # Get a copy of the dictionary to avoid 'dictionary size changed' errors
-        for user_id, official_id in list(self.cmd.looping_users.items()):
-            # If the user was removed, this loop will naturally skip them
-            await self.bot.highrise.send_emote(official_id, user_id)
-            await asyncio.sleep(2) # adjust delay as needed
-        await asyncio.sleep(1)
+    async def emote_engine(self):
+        """Looping emote engine for all added users."""
+        while True:
+            # We access looping_users from your command handler
+            if self.cmd.looping_users:
+                for user_id, official_id in list(self.cmd.looping_users.items()):
+                    try:
+                        await self.highrise.send_emote(official_id, user_id)
+                        await asyncio.sleep(2) 
+                    except Exception as e:
+                        logger.error(f"Emote error: {e}")
+            await asyncio.sleep(1)
 
     async def start_telegram(self):
         if not TELEGRAM_TOKEN: return
@@ -45,6 +50,7 @@ async def emote_engine(self):
                 if context.args:
                     await self.highrise.chat(f"📱 Executing: {context.args[0]}")
                     await self.cmd.execute(None, context.args[0])
+            
             app.add_handler(TG_Cmd("tp", tp_from_telegram))
             await app.initialize()
             await app.start()
@@ -54,14 +60,14 @@ async def emote_engine(self):
             logger.error(f"❌ Telegram Controller failed: {e}")
 
     async def on_chat(self, user, message: str) -> None:
+        # All your existing commands in commands.py will work through this
         await self.cmd.execute(user, message)
 
     async def on_user_join(self, user, position) -> None:
         logger.info(f"👤 User joined: {user.username}")
         try:
             await asyncio.sleep(1.5)
-            
-            # Load data to check for custom welcome message
+            # Custom welcome logic
             custom_msg = None
             if os.path.exists("bot_data.json"):
                 with open("bot_data.json", "r") as f:
@@ -74,11 +80,9 @@ async def emote_engine(self):
                 await self.highrise.chat(f"@{user.username}, {custom_msg}")
             else:
                 await self.highrise.chat(f"Welcome to the room, @{user.username}! 👋")
-                
         except Exception as e:
             logger.error(f"Error in on_user_join: {e}")
 
     async def on_user_leave(self, user) -> None:
-        # Cleanup if user was in an emote loop
-        if user.id in self.cmd.looping_users:
-            self.cmd.looping_users.pop(user.id, None)
+        # Cleanup loop if user leaves
+        self.cmd.looping_users.pop(user.id, None)

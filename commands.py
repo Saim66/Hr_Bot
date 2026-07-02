@@ -88,13 +88,14 @@ class CommandHandler:
                 await self.bot.highrise.chat(f"✅ @{vip_name} is now a VIP!")
             return
         
-        # --- OWNER: MANAGE VIP ---
-        if trigger == "/addvip" and is_owner and args:
-            vip_name = args[0].replace("@", "").lower()
-            if vip_name not in self.data["vips"]:
-                self.data["vips"].append(vip_name) # Adds to the list
-                self.save_data()                  # Updates bot_data.json
-                await self.bot.highrise.chat(f"✅ @{vip_name} is now a VIP!")
+        # --- OWNER: LIST ALL VIPS ---
+        if trigger == "/listvip" and is_owner:
+            if not self.data["vips"]:
+                await self.bot.highrise.chat("💎 The VIP list is currently empty.")
+            else:
+                vip_list = ", ".join([f"@{v}" for v in self.data["vips"]])
+                await self.bot.highrise.chat(f"💎 VIP List: {vip_list}")
+            return
             return
         
         # --- OWNER: REMOVE VIP ---

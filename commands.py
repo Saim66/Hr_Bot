@@ -46,10 +46,24 @@ class CommandHandler:
             await self.bot.highrise.chat(f"✅ @{user.username}, your welcome message is set!")
             return
 
-        # --- STOP EMOTE ---
-        if trigger in ["/stop", "stop", "s", "0"]:
+        # --- 1. STOP COMMAND (Changed from 's' to '/stop') ---
+        if trigger in ["/stop", "/0"]:
             self.looping_users.pop(user.id, None)
-            await self.bot.highrise.chat(f"🛑 @{user.username}, emote loop stopped.")
+            await self.bot.highrise.chat(f"🛑 @{user.username}, stopped your emote loop.")
+            return
+
+        # --- 2. SUMMON COMMAND (/s @user) (Owner Only) ---
+        if trigger == "/s" and is_vip and args:
+            target_name = args[0].replace("@", "").lower()
+            room_users = (await self.bot.highrise.get_room_users()).content
+            owner_pos = next((p for r, p in room_users if r.id == user.id), None)
+            
+            target = next((r for r, _ in room_users if r.username.lower() == target_name), None)
+            if target and owner_pos:
+                await self.bot.highrise.teleport(target.id, owner_pos)
+                await self.bot.highrise.chat(f"✨ Summoned @{target.username} to your side!")
+            else:
+                await self.bot.highrise.chat(f"❌ User @{target_name} not found.")
             return
 
         # --- VIP: TELEPORT TO USER ---

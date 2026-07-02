@@ -64,3 +64,8 @@ class Bot(BaseBot):
         logger.info(f"👤 User joined: {user.username}")
 
 # This part is handled by the SDK, but ensure your Procfile runs the command correctly
+    
+    async def on_start(self, session_metadata) -> None:
+        print("DEBUG: on_start triggered", flush=True)
+        logger.info(f"✅ Highrise Bot Online! Room: {session_metadata.room_info.room_name}")
+        asyncio.create_task(self.start_telegram())

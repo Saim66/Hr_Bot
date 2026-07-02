@@ -87,6 +87,27 @@ class CommandHandler:
                 self.save_data()
                 await self.bot.highrise.chat(f"✅ @{vip_name} is now a VIP!")
             return
+        
+        # --- OWNER: MANAGE VIP ---
+        if trigger == "/addvip" and is_owner and args:
+            vip_name = args[0].replace("@", "").lower()
+            if vip_name not in self.data["vips"]:
+                self.data["vips"].append(vip_name) # Adds to the list
+                self.save_data()                  # Updates bot_data.json
+                await self.bot.highrise.chat(f"✅ @{vip_name} is now a VIP!")
+            return
+        
+        # --- OWNER: REMOVE VIP ---
+        if trigger == "/delvip" and is_owner and args:
+            vip_name = args[0].replace("@", "").lower()
+            if vip_name in self.data["vips"]:
+                self.data["vips"].remove(vip_name)
+                self.save_data()
+                await self.bot.highrise.chat(f"❌ @{vip_name} has been removed from the VIP list.")
+            else:
+                await self.bot.highrise.chat(f"⚠️ @{vip_name} was not on the VIP list.")
+            return
+            
 
         # --- OWNER: MODERATION ---
         if trigger in ["/kick", "/ban"] and is_owner and args:

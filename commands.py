@@ -172,6 +172,31 @@ class CommandHandler:
             else:
                 await self.bot.highrise.chat(f"❌ User @{target_name} not found.")
             return
+        
+        # --- OWNER/VIP: SAVE PUBLIC LOCATION (/set) ---
+        if trigger == "/set" and is_vip and args:
+            loc_name = args[0].lower()
+            room_users = (await self.bot.highrise.get_room_users()).content
+            my_pos = next((p for r, p in room_users if r.id == user.id), None)
+            
+            if my_pos:
+                self.locations[loc_name] = {
+                    "x": my_pos.x, "y": my_pos.y, "z": my_pos.z, "facing": my_pos.facing
+                }
+                self.save_locations() # Saves to locations.json
+                await self.bot.highrise.chat(f"📍 Location '{loc_name}' saved!")
+            return
+
+        # --- OWNER/VIP: DELETE LOCATION (/del) ---
+        if trigger == "/del" and is_vip and args:
+            loc_name = args[0].lower()
+            if loc_name in self.locations:
+                del self.locations[loc_name]
+                self.save_locations() # Updates file
+                await self.bot.highrise.chat(f"❌ Location '{loc_name}' has been deleted.")
+            else:
+                await self.bot.highrise.chat(f"⚠️ Location '{loc_name}' does not exist.")
+            return
 
         # --- DIRECT LOCATION TELEPORT ---
         if os.path.exists(self.loc_file):

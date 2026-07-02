@@ -65,14 +65,13 @@ class Bot(BaseBot):
     async def on_chat(self, user, message: str) -> None:
         await self.cmd.execute(user, message)
 
-    async def on_user_join(self, user) -> None:
+    async def on_user_join(self, user, position) -> None:
         """
-        GREETING LOGIC:
-        Kept extremely simple to prevent connection drops/restarts.
+        The SDK requires 'user' and 'position' arguments.
         """
         logger.info(f"👤 User joined: {user.username}")
         try:
-            # Short sleep helps prevent 'Rate Limit' kicks by Highrise servers
+            # Short sleep to prevent rate limiting
             await asyncio.sleep(1.5)
             await self.highrise.chat(f"Welcome @{user.username}! 👋")
         except Exception as e:

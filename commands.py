@@ -16,15 +16,18 @@ class CommandHandler:
         self.data = {"vips": [], "welcomes": {}, "restricted": []}
         self.load_data()
 
-    def load_locations(self):
-        if os.path.exists(self.loc_file):
-            with open(self.loc_file, "r") as f:
-                return json.load(f)
-        return {}
+    def load_data(self):
+        if os.path.exists("bot_data.json"):
+            with open("bot_data.json", "r") as f:
+                try:
+                    return json.load(f)
+                except:
+                    return {"vips": [], "restricted": [], "welcomes": {}}
+        return {"vips": [], "restricted": [], "welcomes": {}}
 
-    def save_locations(self):
-        with open(self.loc_file, "w") as f:
-            json.dump(self.locations, f, indent=4)
+    def save_data(self):
+        with open("bot_data.json", "w") as f:
+            json.dump(self.data, f, indent=4)
 
     async def execute(self, user, message: str) -> None:
         if not user: return

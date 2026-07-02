@@ -10,6 +10,7 @@ class CommandHandler:
         self.bot = bot
         self.loc_file = "locations.json"
         self.data_file = "bot_data.json"
+        self.looping_users = {}
         
         # These methods must exist for these lines to work!
         self.locations = self.load_locations()

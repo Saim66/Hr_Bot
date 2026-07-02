@@ -21,7 +21,7 @@ class Bot(BaseBot):
         super().__init__()
         self.cmd = CommandHandler(self)
 
-    async def on_start(self, session_metadata) -> None:
+    async def on_start(self, session_metadata): 
         logger.info(f"✅ Highrise Bot Online! Room: {session_metadata.room_info.room_name}")
         asyncio.create_task(self.emote_engine())
 

@@ -3,7 +3,6 @@ import asyncio
 import logging
 from dotenv import load_dotenv
 from highrise import BaseBot
-from highrise import __main__
 from commands import CommandHandler
 from telegram.ext import ApplicationBuilder, CommandHandler as TG_Cmd
 
@@ -11,10 +10,8 @@ from telegram.ext import ApplicationBuilder, CommandHandler as TG_Cmd
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Load environment variables
+# Load config
 load_dotenv()
-BOT_TOKEN = os.getenv("BOT_TOKEN")
-ROOM_ID = os.getenv("ROOM_ID")
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 YOUR_TELEGRAM_ID = int(os.getenv("YOUR_TELEGRAM_ID", "7241289551"))
 
@@ -29,6 +26,7 @@ class Bot(BaseBot):
 
     async def start_telegram(self):
         if not TELEGRAM_TOKEN:
+            logger.error("❌ TELEGRAM_TOKEN not found!")
             return
         try:
             app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
@@ -42,6 +40,7 @@ class Bot(BaseBot):
             await app.initialize()
             await app.start()
             await app.updater.start_polling()
+            logger.info("✅ Telegram Controller Online.")
         except Exception as e:
             logger.error(f"❌ Telegram Controller failed: {e}")
 
@@ -50,8 +49,3 @@ class Bot(BaseBot):
 
     async def on_user_join(self, user) -> None:
         logger.info(f"👤 User joined: {user.username}")
-
-if __name__ == "__main__":
-    # This is the correct way to run your bot
-    bot = Bot()
-    __main__.main(bot, BOT_TOKEN, ROOM_ID)

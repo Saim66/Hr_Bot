@@ -27,16 +27,19 @@ class Bot(BaseBot):
         asyncio.create_task(self.emote_engine()) # <--- Engine activated
 
     async def emote_engine(self):
-        """Continuously loops emotes for users in the looping_users dictionary."""
+        """Ultra-reliable loop engine."""
         while True:
-            # We iterate over a copy to prevent errors if the dictionary changes
-            for user_id, emote_id in list(self.cmd.looping_users.items()):
+            # Always use a copy of the dictionary
+            tasks = list(self.cmd.looping_users.items())
+            
+            for user_id, emote_id in tasks:
                 try:
                     await self.highrise.send_emote(emote_id, user_id)
                 except Exception as e:
-                    logger.error(f"Error looping emote for {user_id}: {e}")
+                    # If one emote fails, we log it but DON'T stop the engine
+                    logger.error(f"Looping failed for {user_id}: {e}")
             
-            # Wait 5 seconds between refreshes to avoid rate limits
+            # Wait 5 seconds
             await asyncio.sleep(5)
 
     async def start_telegram(self):
@@ -64,3 +67,8 @@ class Bot(BaseBot):
 
     async def on_user_join(self, user) -> None:
         logger.info(f"👤 User joined: {user.username}")
+        try:
+            # Keep welcome messages simple to avoid connection issues
+            await self.highrise.chat(f"Welcome @{user.username}! 👋")
+        except Exception as e:
+            logger.error(f"Error in on_user_join: {e}")

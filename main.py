@@ -22,7 +22,22 @@ class Bot(BaseBot):
 
     async def on_start(self, session_metadata) -> None:
         logger.info(f"✅ Highrise Bot Online! Room: {session_metadata.room_info.room_name}")
+        # Start background tasks
         asyncio.create_task(self.start_telegram())
+        asyncio.create_task(self.emote_engine()) # <--- Engine activated
+
+    async def emote_engine(self):
+        """Continuously loops emotes for users in the looping_users dictionary."""
+        while True:
+            # We iterate over a copy to prevent errors if the dictionary changes
+            for user_id, emote_id in list(self.cmd.looping_users.items()):
+                try:
+                    await self.highrise.send_emote(emote_id, user_id)
+                except Exception as e:
+                    logger.error(f"Error looping emote for {user_id}: {e}")
+            
+            # Wait 5 seconds between refreshes to avoid rate limits
+            await asyncio.sleep(5)
 
     async def start_telegram(self):
         if not TELEGRAM_TOKEN:

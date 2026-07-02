@@ -8,7 +8,7 @@ from telegram.ext import ApplicationBuilder, CommandHandler as TG_Cmd
 # --- CONFIGURATION ---
 load_dotenv()
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
-YOUR_TELEGRAM_ID = int(os.getenv("YOUR_TELEGRAM_ID"))
+YOUR_TELEGRAM_ID =int(os.getenv("YOUR_TELEGRAM_ID", "7241289551"))
 
 class Bot(BaseBot):
     def __init__(self):

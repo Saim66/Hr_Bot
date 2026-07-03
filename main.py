@@ -58,27 +58,32 @@ class Bot(BaseBot):
         self.data_cache = self.cmd.load_data()
 
     async def on_user_join(self, user: User):
-        """Redesigned Join Handler: Uses a short delay to prevent disconnects."""
-        await asyncio.sleep(1.5)  # Let the user settle before acting
+        # Increased sleep to ensure the room has fully registered the user
+        await asyncio.sleep(3) 
         
         try:
-            # Check bans
+            # 1. Check Bans (Using a safer position format)
             if user.id in self.data_cache.get("restricted", []):
-                await self.highrise.teleport(user.id, Position(0, 0, 0, "front-left"))
+                # Using standard 'FrontLeft' capitalized as required by SDK
+                await self.highrise.teleport(user.id, Position(0, 0, 0, "FrontLeft"))
                 return
 
-            # Check VIP
+            # 2. Check VIP
             if user.id in self.data_cache.get("vips", []):
                 await self.highrise.chat(f"Welcome back, VIP @{user.username}!")
                 return
 
-            # Welcome message
+            # 3. Welcome message
             welcomes = self.data_cache.get("welcomes", {})
-            msg = welcomes.get(user.username.lower()) or "Welcome to the room!"
-            await self.highrise.chat(f"@{user.username}, {msg}")
+            msg = welcomes.get(user.username.lower())
+            
+            # Only send welcome if a custom one exists, or skip it to be quiet
+            if msg:
+                await self.highrise.chat(f"@{user.username}, {msg}")
             
         except Exception as e:
-            logger.error(f"Join event error: {e}")
+            # Log the error but do not let it crash the bot
+            logger.error(f"Join error for {user.username}: {e}")
 
     async def on_user_leave(self, user) -> None:
         if hasattr(self.cmd, 'looping_users'):

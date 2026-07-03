@@ -113,19 +113,27 @@ class CommandHandler:
             return
 
         # --- DIRECT EMOTE COMMAND (NO PREFIX) ---
+        # FIX: Define command_word here safely
+        command_word = trigger 
+        
         if command_word in EMOTE_DICT:
             actual_emote = EMOTE_DICT[command_word]
-            # ... (your existing room_users/target search logic) ...
+            target_name = args[0].replace("@", "").lower() if args else None
             
-            if target:
-                try:
-                    await self.bot.highrise.send_emote("idle", target.id)
-                    await self.bot.highrise.send_emote(actual_emote, target.id)
-                    
-                    # ADD THIS ANNOUNCEMENT
-                    await self.bot.highrise.chat(f"✨ @{target.username} is now doing {command_word}!")
-                except Exception as e:
-                    print(f"Emote error: {e}")
+            # If no target specified, emote the user who typed it
+            target_id = user.id
+            if target_name:
+                room_users = (await self.bot.highrise.get_room_users()).content
+                target = next((r for r, _ in room_users if r.username.lower() == target_name), None)
+                if target: target_id = target.id
+            
+            try:
+                await self.bot.highrise.send_emote("idle", target_id)
+                await self.bot.highrise.send_emote(actual_emote, target_id)
+                await self.bot.highrise.chat(f"✨ Emote {command_word} triggered!")
+            except Exception as e:
+                print(f"Emote error: {e}")
+            return
 
         if trigger in ["stop", "0"]:
             self.looping_users.pop(user.id, None)
@@ -226,29 +234,4 @@ class CommandHandler:
                 await self.bot.highrise.chat("❌ User not found in this room.")
             return
         
-        # --- DIRECT EMOTE COMMAND (NO PREFIX) ---
-        # Example usage: "macarena @username"
-        msg_parts = message.strip().split()
-        if len(msg_parts) >= 2:
-            command_word = msg_parts[0].lower() # The "macarena" part
-            target_name = msg_parts[1].replace("@", "").lower() # The "@username" part
-            
-            # Check if the word is in your emote list
-            # We check EMOTE_DICT.keys() if you have those defined
-            if command_word in EMOTE_DICT:
-                actual_emote = EMOTE_DICT[command_word]
-                
-                room_users = (await self.bot.highrise.get_room_users()).content
-                target = next((r for r, _ in room_users if r.username.lower() == target_name), None)
-                
-                if target:
-                    try:
-                        # Reset and send emote
-                        await self.bot.highrise.send_emote("idle", target.id)
-                        await self.bot.highrise.send_emote(actual_emote, target.id)
-                        await self.bot.highrise.chat(f"✨ @{target.username} is now doing '{command_word}'!")
-                    except Exception as e:
-                        print(f"Emote error: {e}")
-                else:
-                    await self.bot.highrise.chat(f"❌ User @{target_name} not found.")
-                return
+    

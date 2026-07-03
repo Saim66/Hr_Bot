@@ -1,7 +1,6 @@
 import os
 import asyncio
 import logging
-import json
 from dotenv import load_dotenv
 from highrise import BaseBot, Position, User
 from commands import CommandHandler
@@ -20,6 +19,16 @@ class Bot(BaseBot):
     def __init__(self):
         super().__init__()
         self.cmd = CommandHandler(self)
+        # Add a simple cache so we don't spam the disk
+        self._last_load_time = 0 
+
+    def get_data(self):
+        """Only reload from disk if it hasn't been reloaded in the last 60 seconds."""
+        import time
+        if time.time() - self._last_load_time > 60:
+            self.cmd.data = self.cmd.load_data()
+            self._last_load_time = time.time()
+        return self.cmd.data
 
     async def on_start(self, session_metadata): 
         logger.info(f"✅ Highrise Bot Online! Room: {session_metadata.room_info.room_name}")
@@ -59,22 +68,22 @@ class Bot(BaseBot):
         await self.cmd.execute(user, message)
 
     async def on_user_join(self, user: User):
-        # 1. Reload latest data
-        self.cmd.data = self.cmd.load_data()
+        # Use our cached data getter to keep the bot responsive
+        data = self.get_data()
         
-        # 2. Check BANS (Restrict)
-        if user.id in self.cmd.data.get("restricted", []):
-            await self.highrise.chat(f"@{user.username} is banned from this room!")
+        # 1. Check BANS
+        if user.id in data.get("restricted", []):
+            await self.highrise.chat(f"@{user.username} is banned!")
             await self.highrise.teleport(user.id, Position(0, 0, 0, "front-left"))
             return
 
-        # 3. Check VIP
-        if user.id in self.cmd.data.get("vips", []):
+        # 2. Check VIP
+        if user.id in data.get("vips", []):
             await self.highrise.chat(f"Welcome back, VIP @{user.username}!")
-            return # Skip welcome msg if they are VIP, or remove return to show both
+            return
 
-        # 4. Check CUSTOM WELCOME
-        welcomes = self.cmd.data.get("welcomes", {})
+        # 3. Custom Welcome
+        welcomes = data.get("welcomes", {})
         msg = welcomes.get(user.username)
         if msg:
             await self.highrise.chat(f"@{user.username}, {msg}")

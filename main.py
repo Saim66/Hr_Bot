@@ -18,23 +18,29 @@ class Bot(BaseBot):
     def __init__(self):
         super().__init__()
         self.cmd = CommandHandler(self)
-        # Pre-load data to prevent disk-hit during join
         self.data_cache = self.cmd.load_data()
+        self._api_lock = asyncio.Semaphore(1) # Prevents API flooding
 
     async def on_start(self, session_metadata):
         logger.info(f"✅ Bot Online: {session_metadata.room_info.room_name}")
         asyncio.create_task(self.emote_engine())
         asyncio.create_task(self.start_telegram())
 
+    async def safe_api_call(self, coro):
+        """Helper to run API calls safely without crashing the bot."""
+        async with self._api_lock:
+            try:
+                return await coro
+            except Exception as e:
+                logger.warning(f"API call failed: {e}")
+                return None
+
     async def emote_engine(self):
         while True:
             if hasattr(self.cmd, 'looping_users') and self.cmd.looping_users:
                 for user_id, official_id in list(self.cmd.looping_users.items()):
-                    try:
-                        await self.highrise.send_emote(official_id, user_id)
-                        await asyncio.sleep(2)
-                    except Exception as e:
-                        logger.error(f"Emote error: {e}")
+                    await self.safe_api_call(self.highrise.send_emote(official_id, user_id))
+                    await asyncio.sleep(2)
             await asyncio.sleep(1)
 
     async def start_telegram(self):
@@ -42,8 +48,7 @@ class Bot(BaseBot):
         try:
             app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
             async def tp_from_telegram(update, context):
-                if update.effective_user.id != YOUR_TELEGRAM_ID: return
-                if context.args:
+                if update.effective_user.id == YOUR_TELEGRAM_ID and context.args:
                     await self.cmd.execute(None, context.args[0])
             app.add_handler(TG_Cmd("tp", tp_from_telegram))
             await app.initialize()
@@ -54,36 +59,32 @@ class Bot(BaseBot):
 
     async def on_chat(self, user, message: str) -> None:
         await self.cmd.execute(user, message)
-        # Update cache when a command is executed
+        # Refresh cache whenever a command is run
         self.data_cache = self.cmd.load_data()
 
     async def on_user_join(self, user: User):
-        # Increased sleep to ensure the room has fully registered the user
-        await asyncio.sleep(3) 
-        
+        # Allow room to stabilize
+        await asyncio.sleep(2)
+       
         try:
-            # 1. Check Bans (Using a safer position format)
+            # 1. Ban Check
             if user.id in self.data_cache.get("restricted", []):
-                # Using standard 'FrontLeft' capitalized as required by SDK
-                await self.highrise.teleport(user.id, Position(0, 0, 0, "FrontLeft"))
+                await self.safe_api_call(self.highrise.teleport(user.id, Position(0, 0, 0, "FrontLeft")))
                 return
 
-            # 2. Check VIP
+            # 2. VIP Check
             if user.id in self.data_cache.get("vips", []):
-                await self.highrise.chat(f"Welcome back, VIP @{user.username}!")
+                await self.safe_api_call(self.highrise.chat(f"Welcome back, VIP @{user.username}!"))
                 return
 
-            # 3. Welcome message
+            # 3. Custom Welcome Check
             welcomes = self.data_cache.get("welcomes", {})
             msg = welcomes.get(user.username.lower())
-            
-            # Only send welcome if a custom one exists, or skip it to be quiet
             if msg:
-                await self.highrise.chat(f"@{user.username}, {msg}")
-            
+                await self.safe_api_call(self.highrise.chat(f"@{user.username}, {msg}"))
+           
         except Exception as e:
-            # Log the error but do not let it crash the bot
-            logger.error(f"Join error for {user.username}: {e}")
+            logger.error(f"Join logic error: {e}")
 
     async def on_user_leave(self, user) -> None:
         if hasattr(self.cmd, 'looping_users'):

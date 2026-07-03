@@ -3,7 +3,7 @@ import asyncio
 import logging
 import json
 from dotenv import load_dotenv
-from highrise import BaseBot, Position, User, RoomUser
+from highrise import BaseBot, Position, User
 from commands import CommandHandler
 from telegram.ext import ApplicationBuilder, CommandHandler as TG_Cmd
 
@@ -63,15 +63,21 @@ class Bot(BaseBot):
         # All your existing commands in commands.py will work through this
         await self.cmd.execute(user, message)
 
-    async def on_user_join(self, user: User, room: RoomUser):
+    async def on_user_join(self, user: User): # Removed room: RoomUser
+        # Now we only use user.id, which is all we need!
+        
         # 1. Check if user is restricted (Banned)
-        if user.id in self.cmd.data["restricted"]:
-            await self.highrise.teleport(user.id, Position(0, 0, 0, "front-left")) # Teleport to exit
-            await self.highrise.chat(f"@{user.username} is banned from this room.")
+        if user.id in self.cmd.data.get("restricted", []):
+            try:
+                # Teleport user to a safe exit position
+                await self.highrise.teleport(user.id, Position(x=0, y=0, z=0, facing="FrontLeft"))
+                await self.highrise.chat(f"@{user.username} is banned from this room.")
+            except Exception as e:
+                print(f"Error teleporting banned user: {e}")
             return
 
         # 2. Check if user is VIP
-        if user.id in self.cmd.data["vips"]:
+        if user.id in self.cmd.data.get("vips", []):
             await self.highrise.chat(f"Welcome back, VIP @{user.username}!")
 
     async def on_user_leave(self, user) -> None:

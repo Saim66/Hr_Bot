@@ -65,21 +65,27 @@ class Bot(BaseBot):
 
     async def on_user_join(self, user, position) -> None:
         logger.info(f"👤 User joined: {user.username}")
+        # Define the exact path used by save_data in commands.py
+        data_file = "/app/data/bot_data.json" # Change this if your path is different
+        
         try:
             await asyncio.sleep(1.5)
-            # Custom welcome logic
             custom_msg = None
-            if os.path.exists("bot_data.json"):
-                with open("bot_data.json", "r") as f:
+            
+            if os.path.exists(data_file):
+                with open(data_file, "r") as f:
                     try:
                         data = json.load(f)
+                        # Check using .lower() for both sides
                         custom_msg = data.get("welcomes", {}).get(user.username.lower())
-                    except: pass
+                    except Exception as e:
+                        logger.error(f"Error reading JSON: {e}")
             
             if custom_msg:
                 await self.highrise.chat(f"@{user.username}, {custom_msg}")
             else:
                 await self.highrise.chat(f"Welcome to the room, @{user.username}! 👋")
+                
         except Exception as e:
             logger.error(f"Error in on_user_join: {e}")
 

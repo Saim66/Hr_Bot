@@ -26,7 +26,6 @@ pm2
 propcache
 python-dateutil
 python-dotenv
-python-telegram-bot
 pytzdata
 quattro
 six

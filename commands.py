@@ -58,11 +58,26 @@ class CommandHandler:
         except Exception as e:
             print(f"DEBUG: Error saving: {e}")
 
-    def add_vip(self, user_name):
-        user_name = user_name.replace("@", "").lower()
-        if user_name not in self.data["vips"]:
-            self.data["vips"].append(user_name)
-            self.save_data() # <--- Calling this triggers the write
+    # VIP MANAGEMENT
+    def add_vip(self, user_id):
+        if user_id not in self.data["vips"]:
+            self.data["vips"].append(user_id)
+            self.save_data()
+            return True
+        return False
+
+    def remove_vip(self, user_id):
+        if user_id in self.data["vips"]:
+            self.data["vips"].remove(user_id)
+            self.save_data()
+            return True
+        return False
+
+    # BAN/RESTRICT MANAGEMENT
+    def restrict_user(self, user_id):
+        if user_id not in self.data["restricted"]:
+            self.data["restricted"].append(user_id)
+            self.save_data()
             return True
         return False
 

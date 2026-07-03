@@ -3,7 +3,7 @@ import asyncio
 import logging
 import json
 from dotenv import load_dotenv
-from highrise import BaseBot
+from highrise import BaseBot, Position, User, RoomUser
 from commands import CommandHandler
 from telegram.ext import ApplicationBuilder, CommandHandler as TG_Cmd
 
@@ -63,31 +63,16 @@ class Bot(BaseBot):
         # All your existing commands in commands.py will work through this
         await self.cmd.execute(user, message)
 
-    async def on_user_join(self, user, position) -> None:
-        logger.info(f"👤 User joined: {user.username}")
-        # Define the exact path used by save_data in commands.py
-        data_file = "/app/data/bot_data.json" # Change this if your path is different
-        
-        try:
-            await asyncio.sleep(1.5)
-            custom_msg = None
-            
-            if os.path.exists(data_file):
-                with open(data_file, "r") as f:
-                    try:
-                        data = json.load(f)
-                        # Check using .lower() for both sides
-                        custom_msg = data.get("welcomes", {}).get(user.username.lower())
-                    except Exception as e:
-                        logger.error(f"Error reading JSON: {e}")
-            
-            if custom_msg:
-                await self.highrise.chat(f"@{user.username}, {custom_msg}")
-            else:
-                await self.highrise.chat(f"Welcome to the room, @{user.username}! 👋")
-                
-        except Exception as e:
-            logger.error(f"Error in on_user_join: {e}")
+    async def on_user_join(self, user: User, room: RoomUser):
+        # 1. Check if user is restricted (Banned)
+        if user.id in self.cmd.data["restricted"]:
+            await self.highrise.teleport(user.id, Position(0, 0, 0, "front-left")) # Teleport to exit
+            await self.highrise.chat(f"@{user.username} is banned from this room.")
+            return
+
+        # 2. Check if user is VIP
+        if user.id in self.cmd.data["vips"]:
+            await self.highrise.chat(f"Welcome back, VIP @{user.username}!")
 
     async def on_user_leave(self, user) -> None:
         # Cleanup loop if user leaves

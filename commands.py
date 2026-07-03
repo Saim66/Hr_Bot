@@ -11,6 +11,8 @@ class CommandHandler:
         base_dir = os.path.dirname(os.path.abspath(__file__))
         self.loc_file = os.path.join(base_dir, "locations.json")
         self.data_file = os.path.join(base_dir, "bot_data.json")
+        self.data_file = "/app/data/bot_data.json" # <--- Check this path
+        self.data = {"vips": [], "welcomes": {}}
         self.loc_file = "locations.json"
         self.data_file = "bot_data.json"
         self.looping_users = {}
@@ -67,14 +69,20 @@ class CommandHandler:
 
         # --- HELP ---
         if trigger == "/help":
-            await self.bot.highrise.chat(f"📜 @{user.username}, available: /welcome [msg], /stop. VIPs: /to @user. Owner: /addvip, /kick, /ban, /ownergo [name]")
+            await self.bot.highrise.chat(f"📜 @{user.username}, available: /welcome [msg], /stop. , /s @user, /to @user. ")
             return
 
         # --- CUSTOM WELCOME ---
-        if trigger == "/welcome" and args:
-            self.data["welcomes"][user.username.lower()] = " ".join(args)
+        if trigger == "/welcome":
+            # 1. Update the data
+            target_user = args[0].replace("@", "").lower()
+            message = " ".join(args[1:])
+            self.data["welcomes"][target_user] = message
+            
+            # 2. SAVE IT
             self.save_data()
-            await self.bot.highrise.chat(f"✅ @{user.username}, your welcome message is set!")
+            
+            await self.bot.highrise.chat(f"✅ Welcome message saved for @{target_user}")
             return
 
         # --- 2. STOP COMMAND ---

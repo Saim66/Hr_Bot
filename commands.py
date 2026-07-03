@@ -188,3 +188,55 @@ class CommandHandler:
                 await self.bot.highrise.chat(f"📂 Saved locations: {loc_list}")
             return
         
+        # 10. EMOTE ALL
+        if trigger == "/all" and is_owner and args:
+            emote_name = args[0]
+            room_users = (await self.bot.highrise.get_room_users()).content
+            
+            # Send emote to everyone in the room
+            for user_obj, _ in room_users:
+                try:
+                    await self.bot.highrise.send_emote(emote_name, user_obj.id)
+                except Exception:
+                    continue # Skip if user cannot emote
+            await self.bot.highrise.chat(f"✨ Emote '{emote_name}' sent to everyone!")
+            return
+
+        # 11. USER INFO
+        if trigger == "/info" and is_vip and args:
+            target_name = args[0].replace("@", "").lower()
+            room_users = (await self.bot.highrise.get_room_users()).content
+            target = next((r for r, _ in room_users if r.username.lower() == target_name), None)
+            
+            if target:
+                is_target_vip = target.username.lower() in self.data.get("vips", [])
+                await self.bot.highrise.chat(
+                    f"👤 @{target.username} | ID: {target.id} | VIP: {'Yes' if is_target_vip else 'No'}"
+                )
+            else:
+                await self.bot.highrise.chat("❌ User not found in this room.")
+            return
+        
+        # 12. EMOTE USER
+        # Usage: /emote [emote_name] @[username]
+        if trigger == "/emote" and is_vip:
+            if len(args) < 2:
+                await self.bot.highrise.chat("Usage: /emote [emote_name] @[username]")
+                return
+            
+            emote_name = args[0]
+            target_name = args[1].replace("@", "").lower()
+            
+            room_users = (await self.bot.highrise.get_room_users()).content
+            target = next((r for r, _ in room_users if r.username.lower() == target_name), None)
+            
+            if target:
+                try:
+                    await self.bot.highrise.send_emote(emote_name, target.id)
+                    await self.bot.highrise.chat(f"✨ Emote '{emote_name}' sent to @{target.username}!")
+                except Exception as e:
+                    await self.bot.highrise.chat(f"⚠️ Could not emote: {str(e)}")
+            else:
+                await self.bot.highrise.chat(f"❌ User @{target_name} not found.")
+            return
+        

@@ -10,7 +10,6 @@ from telegram.ext import ApplicationBuilder, CommandHandler as TG_Cmd
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Load environment variables
 load_dotenv()
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 YOUR_TELEGRAM_ID = int(os.getenv("YOUR_TELEGRAM_ID", "7241289551"))
@@ -19,19 +18,11 @@ class Bot(BaseBot):
     def __init__(self):
         super().__init__()
         self.cmd = CommandHandler(self)
-        # Add a simple cache so we don't spam the disk
-        self._last_load_time = 0 
+        # Pre-load data to prevent disk-hit during join
+        self.data_cache = self.cmd.load_data()
 
-    def get_data(self):
-        """Only reload from disk if it hasn't been reloaded in the last 60 seconds."""
-        import time
-        if time.time() - self._last_load_time > 60:
-            self.cmd.data = self.cmd.load_data()
-            self._last_load_time = time.time()
-        return self.cmd.data
-
-    async def on_start(self, session_metadata): 
-        logger.info(f"✅ Highrise Bot Online! Room: {session_metadata.room_info.room_name}")
+    async def on_start(self, session_metadata):
+        logger.info(f"✅ Bot Online: {session_metadata.room_info.room_name}")
         asyncio.create_task(self.emote_engine())
         asyncio.create_task(self.start_telegram())
 
@@ -41,7 +32,7 @@ class Bot(BaseBot):
                 for user_id, official_id in list(self.cmd.looping_users.items()):
                     try:
                         await self.highrise.send_emote(official_id, user_id)
-                        await asyncio.sleep(2) 
+                        await asyncio.sleep(2)
                     except Exception as e:
                         logger.error(f"Emote error: {e}")
             await asyncio.sleep(1)
@@ -53,42 +44,41 @@ class Bot(BaseBot):
             async def tp_from_telegram(update, context):
                 if update.effective_user.id != YOUR_TELEGRAM_ID: return
                 if context.args:
-                    await self.highrise.chat(f"📱 Executing: {context.args[0]}")
                     await self.cmd.execute(None, context.args[0])
-            
             app.add_handler(TG_Cmd("tp", tp_from_telegram))
             await app.initialize()
             await app.start()
             await app.updater.start_polling()
-            logger.info("✅ Telegram Controller Online.")
         except Exception as e:
-            logger.error(f"❌ Telegram Controller failed: {e}")
+            logger.error(f"Telegram failed: {e}")
 
     async def on_chat(self, user, message: str) -> None:
         await self.cmd.execute(user, message)
+        # Update cache when a command is executed
+        self.data_cache = self.cmd.load_data()
 
     async def on_user_join(self, user: User):
-        # Use our cached data getter to keep the bot responsive
-        data = self.get_data()
+        """Redesigned Join Handler: Uses a short delay to prevent disconnects."""
+        await asyncio.sleep(1.5)  # Let the user settle before acting
         
-        # 1. Check BANS
-        if user.id in data.get("restricted", []):
-            await self.highrise.chat(f"@{user.username} is banned!")
-            await self.highrise.teleport(user.id, Position(0, 0, 0, "front-left"))
-            return
+        try:
+            # Check bans
+            if user.id in self.data_cache.get("restricted", []):
+                await self.highrise.teleport(user.id, Position(0, 0, 0, "front-left"))
+                return
 
-        # 2. Check VIP
-        if user.id in data.get("vips", []):
-            await self.highrise.chat(f"Welcome back, VIP @{user.username}!")
-            return
+            # Check VIP
+            if user.id in self.data_cache.get("vips", []):
+                await self.highrise.chat(f"Welcome back, VIP @{user.username}!")
+                return
 
-        # 3. Custom Welcome
-        welcomes = data.get("welcomes", {})
-        msg = welcomes.get(user.username)
-        if msg:
+            # Welcome message
+            welcomes = self.data_cache.get("welcomes", {})
+            msg = welcomes.get(user.username.lower()) or "Welcome to the room!"
             await self.highrise.chat(f"@{user.username}, {msg}")
-        else:
-            await self.highrise.chat(f"Welcome to the room, @{user.username}!")
+            
+        except Exception as e:
+            logger.error(f"Join event error: {e}")
 
     async def on_user_leave(self, user) -> None:
         if hasattr(self.cmd, 'looping_users'):

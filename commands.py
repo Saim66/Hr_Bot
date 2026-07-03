@@ -48,10 +48,8 @@ class CommandHandler:
         # 1. Check if the file exists
         if os.path.exists(self.data_file):
             with open(self.data_file, "r") as f:
-                try:
-                    return json.load(f)
-                except json.JSONDecodeError:
-                    return {"vips": [], "restricted": [], "welcomes": {}}
+                return json.load(f)
+        return {"vips": [], "restricted": [], "welcomes": {}}
         
         # 2. If it doesn't exist, create it so you don't keep getting "File not found"
         print(f"DEBUG: File not found at {self.data_file}, creating new one.")

@@ -59,7 +59,21 @@ class CommandHandler:
             self.data["vips"].append(user_name)
             self.save_data() # <--- Calling this triggers the write
             return True
-        return False        
+        return False
+
+    # Add this inside your CommandHandler class in commands.py
+    async def check_data(self, user):
+        try:
+            # Point to the exact path of your volume
+            path = "/app/data/bot_data.json"
+            if os.path.exists(path):
+                with open(path, "r") as f:
+                    content = f.read()
+                    await self.bot.highrise.chat(f"Stored Data: {content}")
+            else:
+                await self.bot.highrise.chat("File not found! Check your path.")
+        except Exception as e:
+            await self.bot.highrise.chat(f"Error: {e}")    
 
     async def execute(self, user, message: str) -> None:
         if not user: return
@@ -67,6 +81,8 @@ class CommandHandler:
         parts = msg.split()
         trigger = parts[0].lower()
         args = parts[1:]
+        if message == "/checkdata":
+            await self.check_data(user)
         
         is_owner = user.username.lower() == config.OWNER_USERNAME.lower()
         is_vip = user.username.lower() in self.data.get("vips", []) or is_owner

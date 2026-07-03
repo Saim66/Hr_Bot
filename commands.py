@@ -35,14 +35,14 @@ class CommandHandler:
     def load_data(self):
         # 1. Check if file exists and is not empty
         if os.path.exists(self.data_file) and os.path.getsize(self.data_file) > 0:
-            with open(self.data_file, "r") as f:
-                try:
+            try:
+                with open(self.data_file, "r") as f:
                     return json.load(f)
-                except json.JSONDecodeError:
-                    print("DEBUG: File was corrupted/empty, resetting.")
-                    return {"vips": [], "restricted": [], "welcomes": {}}
+            except json.JSONDecodeError:
+                print("DEBUG: File was corrupted, resetting.")
         
-        # 2. If it is empty or doesn't exist, return a default structure
+        # 2. THIS IS THE MISSING PART:
+        # If the file didn't exist OR it was empty, we MUST return this:
         return {"vips": [], "restricted": [], "welcomes": {}}
 
     def save_locations(self):

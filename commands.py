@@ -15,6 +15,7 @@ class CommandHandler:
         self.data = {"vips": [], "welcomes": {}}
         self.loc_file = "locations.json"
         self.data_file = "bot_data.json"
+        self.data = self.load_data()
         self.looping_users = {}
         
         # These methods must exist for these lines to work!
@@ -32,37 +33,17 @@ class CommandHandler:
         return {}
 
     def load_data(self):
-        # List everything in the root directory
-        files_in_root = os.listdir('.')
-        # List everything in the /app/data directory if it exists
-        files_in_data = os.listdir('/app/data') if os.path.exists('/app/data') else "Folder does not exist"
-        
-        # Send this info to the chat so you can see it
-        # We limit the output so it fits in one chat message
-        response = f"Root: {files_in_root[:5]} | Data: {files_in_data}"
-        
-        # You can replace the chat call with print() if you prefer checking logs
-        # await self.bot.highrise.chat(f"Files: {response}") 
-        print(f"DEBUG: Files in root: {files_in_root}")
-        print(f"DEBUG: Files in /app/data: {files_in_data}")
-        # 1. Check if the file exists
-        if os.path.exists(self.data_file):
+        # 1. Check if file exists and is not empty
+        if os.path.exists(self.data_file) and os.path.getsize(self.data_file) > 0:
             with open(self.data_file, "r") as f:
-                return json.load(f)
+                try:
+                    return json.load(f)
+                except json.JSONDecodeError:
+                    print("DEBUG: File was corrupted/empty, resetting.")
+                    return {"vips": [], "restricted": [], "welcomes": {}}
+        
+        # 2. If it is empty or doesn't exist, return a default structure
         return {"vips": [], "restricted": [], "welcomes": {}}
-        
-        # 2. If it doesn't exist, create it so you don't keep getting "File not found"
-        print(f"DEBUG: File not found at {self.data_file}, creating new one.")
-        initial_data = {"vips": [], "restricted": [], "welcomes": {}}
-        
-        # Ensure the directory exists
-        os.makedirs(os.path.dirname(self.data_file), exist_ok=True)
-        
-        # Save the default data
-        with open(self.data_file, "w") as f:
-            json.dump(initial_data, f)
-            
-        return initial_data
 
     def save_locations(self):
         with open(self.loc_file, "w") as f:

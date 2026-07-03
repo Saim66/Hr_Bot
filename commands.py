@@ -94,6 +94,12 @@ class CommandHandler:
         except Exception as e:
             await self.bot.highrise.chat(f"Error: {e}")
 
+    async def set_welcome(self, user, message):
+        # Add the message to the dictionary using the username as the key
+        self.cmd.data["welcomes"][user.username] = message
+        self.cmd.save_data()
+        await self.bot.highrise.chat(f"Welcome message set for @{user.username}!")        
+
     async def execute(self, user, message: str) -> None:
         if not user: return
         msg = message.strip()

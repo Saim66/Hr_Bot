@@ -63,18 +63,22 @@ class Bot(BaseBot):
         # All your existing commands in commands.py will work through this
         await self.cmd.execute(user, message)
 
-    async def on_user_join(self, user: User): # Removed room: RoomUser
-        # Now we only use user.id, which is all we need!
+    async def on_user_join(self, user: User):
+        # 1. Reload data to get the latest changes
+        self.cmd.data = self.cmd.load_data()
         
-        # 1. Check if user is restricted (Banned)
-        if user.id in self.cmd.data.get("restricted", []):
-            try:
-                # Teleport user to a safe exit position
-                await self.highrise.teleport(user.id, Position(x=0, y=0, z=0, facing="FrontLeft"))
-                await self.highrise.chat(f"@{user.username} is banned from this room.")
-            except Exception as e:
-                print(f"Error teleporting banned user: {e}")
-            return
+        # 2. Get the dictionary of welcomes
+        welcomes = self.cmd.data.get("welcomes", {})
+        
+        # 3. Check if there's a custom message for this user (or a default)
+        # Using user.username as the key, or a default key like 'all'
+        msg = welcomes.get(user.username)
+        
+        if msg:
+            await self.highrise.chat(f"@{user.username}, {msg}")
+        else:
+            # Optional: Send a generic welcome if no custom one exists
+            await self.highrise.chat(f"Welcome to the room, @{user.username}!")
 
         # 2. Check if user is VIP
         if user.id in self.cmd.data.get("vips", []):

@@ -25,15 +25,19 @@ class CommandHandler:
     def load_locations(self):
         if os.path.exists(self.loc_file):
             with open(self.loc_file, "r") as f:
-                try: return json.load(f)
-                except: return {}
+                try:
+                    return json.load(f)
+                except json.JSONDecodeError:
+                    return {}
         return {}
 
     def load_data(self):
         if os.path.exists(self.data_file):
             with open(self.data_file, "r") as f:
-                try: return json.load(f)
-                except: return {"vips": [], "restricted": []}
+                try:
+                    return json.load(f)
+                except json.JSONDecodeError:
+                    return {"vips": [], "restricted": []}
         return {"vips": [], "restricted": []}
 
     def save_locations(self):
@@ -73,17 +77,21 @@ class CommandHandler:
             return
 
         # --- CUSTOM WELCOME ---
-        if trigger == "/welcome":
-            # 1. Update the data
-            target_user = args[0].replace("@", "").lower()
-            message = " ".join(args[1:])
-            self.data["welcomes"][target_user] = message
+        if trigger == "/welcome" and is_owner:
+            # 1. ADD THIS CHECK FIRST
+            if "welcomes" not in self.data:
+                self.data["welcomes"] = {}
             
-            # 2. SAVE IT
-            self.save_data()
-            
-            await self.bot.highrise.chat(f"✅ Welcome message saved for @{target_user}")
-            return
+            # 2. Now it is safe to add the user
+            if len(args) >= 2:
+                target_user = args[0].replace("@", "").lower()
+                custom_message = " ".join(args[1:])
+                
+                self.data["welcomes"][target_user] = custom_message
+                self.save_data() 
+                
+                await self.bot.highrise.chat(f"✅ Welcome message set for @{target_user}")
+                return
 
         # --- 2. STOP COMMAND ---
         if trigger in ["stop", "0"]:

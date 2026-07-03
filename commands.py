@@ -51,12 +51,12 @@ class CommandHandler:
 
     def save_data(self):
         try:
-            with open(self.data_file, "w") as f:
+            # This ensures it writes to the volume folder
+            with open("/app/data/bot_data.json", "w") as f:
                 json.dump(self.data, f, indent=4)
-            print(f"DEBUG: Successfully wrote to {self.data_file}")
-            print(f"DEBUG: Current Data: {self.data}")
+            print("DEBUG: Successfully saved to /app/data/bot_data.json")
         except Exception as e:
-            print(f"DEBUG: ERROR SAVING FILE: {e}")
+            print(f"DEBUG: Error saving: {e}")
 
     def add_vip(self, user_name):
         user_name = user_name.replace("@", "").lower()
@@ -69,16 +69,15 @@ class CommandHandler:
     # Add this inside your CommandHandler class in commands.py
     async def check_data(self, user):
         try:
-            # Point to the exact path of your volume
             path = "/app/data/bot_data.json"
             if os.path.exists(path):
                 with open(path, "r") as f:
                     content = f.read()
                     await self.bot.highrise.chat(f"Stored Data: {content}")
             else:
-                await self.bot.highrise.chat("File not found! Check your path.")
+                await self.bot.highrise.chat("File not found at /app/data/bot_data.json!")
         except Exception as e:
-            await self.bot.highrise.chat(f"Error: {e}")    
+            await self.bot.highrise.chat(f"Error: {e}")
 
     async def execute(self, user, message: str) -> None:
         if not user: return

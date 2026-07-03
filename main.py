@@ -19,20 +19,16 @@ YOUR_TELEGRAM_ID = int(os.getenv("YOUR_TELEGRAM_ID", "7241289551"))
 class Bot(BaseBot):
     def __init__(self):
         super().__init__()
-        # This connects all your commands from commands.py
         self.cmd = CommandHandler(self)
 
     async def on_start(self, session_metadata): 
         logger.info(f"✅ Highrise Bot Online! Room: {session_metadata.room_info.room_name}")
-        # Start background tasks
         asyncio.create_task(self.emote_engine())
         asyncio.create_task(self.start_telegram())
 
     async def emote_engine(self):
-        """Looping emote engine for all added users."""
         while True:
-            # We access looping_users from your command handler
-            if self.cmd.looping_users:
+            if hasattr(self.cmd, 'looping_users') and self.cmd.looping_users:
                 for user_id, official_id in list(self.cmd.looping_users.items()):
                     try:
                         await self.highrise.send_emote(official_id, user_id)
@@ -60,30 +56,31 @@ class Bot(BaseBot):
             logger.error(f"❌ Telegram Controller failed: {e}")
 
     async def on_chat(self, user, message: str) -> None:
-        # All your existing commands in commands.py will work through this
         await self.cmd.execute(user, message)
 
     async def on_user_join(self, user: User):
-        # 1. Reload data to get the latest changes
+        # 1. Reload latest data
         self.cmd.data = self.cmd.load_data()
         
-        # 2. Get the dictionary of welcomes
+        # 2. Check BANS (Restrict)
+        if user.id in self.cmd.data.get("restricted", []):
+            await self.highrise.chat(f"@{user.username} is banned from this room!")
+            await self.highrise.teleport(user.id, Position(0, 0, 0, "front-left"))
+            return
+
+        # 3. Check VIP
+        if user.id in self.cmd.data.get("vips", []):
+            await self.highrise.chat(f"Welcome back, VIP @{user.username}!")
+            return # Skip welcome msg if they are VIP, or remove return to show both
+
+        # 4. Check CUSTOM WELCOME
         welcomes = self.cmd.data.get("welcomes", {})
-        
-        # 3. Check if there's a custom message for this user (or a default)
-        # Using user.username as the key, or a default key like 'all'
         msg = welcomes.get(user.username)
-        
         if msg:
             await self.highrise.chat(f"@{user.username}, {msg}")
         else:
-            # Optional: Send a generic welcome if no custom one exists
             await self.highrise.chat(f"Welcome to the room, @{user.username}!")
 
-        # 2. Check if user is VIP
-        if user.id in self.cmd.data.get("vips", []):
-            await self.highrise.chat(f"Welcome back, VIP @{user.username}!")
-
     async def on_user_leave(self, user) -> None:
-        # Cleanup loop if user leaves
-        self.cmd.looping_users.pop(user.id, None)
+        if hasattr(self.cmd, 'looping_users'):
+            self.cmd.looping_users.pop(user.id, None)

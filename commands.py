@@ -18,6 +18,29 @@ class CommandHandler:
         self.locations = self.load_locations()
         self.looping_users = {}
 
+    async def loop_emote(self, emote_id, target_id, target_name):
+        self.looping_users[target_name] = True
+        
+        # Log that the loop has started
+        print(f"DEBUG: Started looping emote '{emote_id}' for user: {target_name}")
+
+        while self.looping_users.get(target_name, False):
+            try:
+                # Log which emote is being triggered in this iteration
+                print(f"DEBUG: Triggering {emote_id} for {target_name}")
+                
+                await self.bot.highrise.send_emote(emote_id, target_id)
+                await asyncio.sleep(6)
+            except Exception as e:
+                print(f"DEBUG: Error looping emote for {target_name}: {e}")
+                break
+        
+        # Log that the loop has ended
+        print(f"DEBUG: Stopped looping emote for user: {target_name}")
+        
+        if target_name in self.looping_users:
+            del self.looping_users[target_name]   
+
     def load_data(self):
         if os.path.exists(self.data_file):
             try:
@@ -113,29 +136,7 @@ class CommandHandler:
                 await self.bot.highrise.chat("❌ User not found.")
             return
 
-        # --- DIRECT EMOTE COMMAND (NON-STOP) ---
-        if trigger in EMOTE_DICT:
-            actual_emote = EMOTE_DICT[trigger]
-            target_name = args[0].replace("@", "").lower() if args else user.username.lower()
-            
-            # Find target ID
-            room_users = (await self.bot.highrise.get_room_users()).content
-            target = next((r for r, _ in room_users if r.username.lower() == target_name), None)
-            
-            if target:
-                # Start the background task
-                asyncio.create_task(self.loop_emote(actual_emote, target.id, target_name))
-                await self.bot.highrise.chat(f"✨ Looping {trigger} for @{target_name}. Say 'stop' or '0' to end.")
-            return
-
-        # --- STOP COMMAND ---
-        if trigger in ["stop", "0"]:
-            name_to_stop = user.username.lower()
-            if name_to_stop in self.looping_users:
-                self.looping_users[name_to_stop] = False
-                await self.bot.highrise.chat(f"⏹️ Stopped your emote loop.")
-            return
-
+       
         if trigger in ["stop", "0"]:
             self.looping_users.pop(user.id, None)
             await self.bot.highrise.send_emote("idle", user.id)

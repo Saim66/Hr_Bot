@@ -32,13 +32,26 @@ class CommandHandler:
         return {}
 
     def load_data(self):
+        # 1. Check if the file exists
         if os.path.exists(self.data_file):
             with open(self.data_file, "r") as f:
                 try:
                     return json.load(f)
                 except json.JSONDecodeError:
-                    return {"vips": [], "restricted": []}
-        return {"vips": [], "restricted": []}
+                    return {"vips": [], "restricted": [], "welcomes": {}}
+        
+        # 2. If it doesn't exist, create it so you don't keep getting "File not found"
+        print(f"DEBUG: File not found at {self.data_file}, creating new one.")
+        initial_data = {"vips": [], "restricted": [], "welcomes": {}}
+        
+        # Ensure the directory exists
+        os.makedirs(os.path.dirname(self.data_file), exist_ok=True)
+        
+        # Save the default data
+        with open(self.data_file, "w") as f:
+            json.dump(initial_data, f)
+            
+        return initial_data
 
     def save_locations(self):
         with open(self.loc_file, "w") as f:

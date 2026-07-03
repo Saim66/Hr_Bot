@@ -136,3 +136,55 @@ class CommandHandler:
             await self.bot.highrise.teleport(user.id, target_pos)
             await self.bot.highrise.chat(f"🚀 Teleporting to {trigger}!")
             return
+        
+        # 7. SAVE LOCATION
+        if trigger == "/set" and is_owner:
+            if not args:
+                await self.bot.highrise.chat("Usage: /set [name]")
+                return
+            
+            loc_name = args[0].lower()
+            room_users = (await self.bot.highrise.get_room_users()).content
+            
+            # Find the owner's position
+            my_pos = next((p for r, p in room_users if r.id == user.id), None)
+            
+            if my_pos:
+                # Save to the locations dictionary
+                self.locations[loc_name] = {
+                    "x": my_pos.x, 
+                    "y": my_pos.y, 
+                    "z": my_pos.z, 
+                    "facing": my_pos.facing
+                }
+                self.save_locations() # This saves it to locations.json
+                await self.bot.highrise.chat(f"✅ Location '{loc_name}' saved permanently!")
+            else:
+                await self.bot.highrise.chat("❌ Could not get your current position.")
+            return
+        
+        # 9. DELETE LOCATION
+        if trigger in ["/dloc", "/deleteloc"] and is_owner:
+            if not args:
+                await self.bot.highrise.chat("Usage: /delloc [name]")
+                return
+            
+            loc_name = args[0].lower()
+            
+            if loc_name in self.locations:
+                del self.locations[loc_name]
+                self.save_locations()
+                await self.bot.highrise.chat(f"🗑️ Location '{loc_name}' has been deleted!")
+            else:
+                await self.bot.highrise.chat(f"❌ Location '{loc_name}' not found.")
+            return
+        
+        # 8. CHECK SAVED LOCATIONS
+        if trigger == "/clocs" and is_owner:
+            if not self.locations:
+                await self.bot.highrise.chat("📂 No locations are saved.")
+            else:
+                loc_list = ", ".join(self.locations.keys())
+                await self.bot.highrise.chat(f"📂 Saved locations: {loc_list}")
+            return
+        

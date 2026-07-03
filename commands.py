@@ -55,7 +55,7 @@ class CommandHandler:
 
         # 1. HELP
         if trigger == "/help":
-            await self.bot.highrise.chat("📜 Commands: /welcome, /s, /to, /addvip, /kick, /ban")
+            await self.bot.highrise.chat("📜 Commands: /welcome, /s, /to, /kick, /ban")
             return
 
         # 2. WELCOME MANAGEMENT
@@ -70,7 +70,7 @@ class CommandHandler:
             return
 
         # 3. VIP MANAGEMENT
-        if trigger == "/addvip" and is_owner:
+        if trigger == "/vip" and is_owner:
             if not args: return
             target = args[0].replace("@", "").lower()
             if target not in self.data["vips"]:
@@ -122,4 +122,17 @@ class CommandHandler:
             self.looping_users.pop(user.id, None)
             await self.bot.highrise.send_emote("idle", user.id)
             await self.bot.highrise.chat(f"🛑 Stopped.")
+            return
+        
+        if trigger in self.locations:
+            # Permission check
+            if trigger in self.data.get("restricted", []) and not is_owner:
+                await self.bot.highrise.chat(f"🚫 Sorry @{user.username}, that is an Owner-only area!")
+                return
+            
+            loc = self.locations[trigger]
+            # Ensure the position is valid
+            target_pos = Position(float(loc['x']), float(loc['y']), float(loc['z']), loc['facing'])
+            await self.bot.highrise.teleport(user.id, target_pos)
+            await self.bot.highrise.chat(f"🚀 Teleporting to {trigger}!")
             return

@@ -1,6 +1,7 @@
 import asyncio
 import json
 import os
+from highrise import Position, User, CurrencyItem, Item  #
 from highrise import Position
 import config
 from emotes import EMOTE_DICT
@@ -33,14 +34,15 @@ class CommandHandler:
         
         self.looping_users[target_name] = False
 
-    async def on_tip(self, sender: User, receiver: User, tip: Union[CurrencyItem, Item]) -> None:
+    # Using strings ("User", "CurrencyItem") avoids the NameError
+    async def on_tip(self, sender: "User", receiver: "User", tip: "Union[CurrencyItem, Item]") -> None:
         try:
             if receiver.id == self.bot.bot_id:
                 amount = getattr(tip, 'amount', 'unknown')
                 currency = getattr(tip, 'currency', 'gold')
                 await self.bot.highrise.chat(f"✨ Thank you @{sender.username} for the {amount} {currency} tip!")
         except Exception as e:
-            print(f"Error in on_tip: {e}") 
+            print(f"Error in on_tip: {e}")
 
     def load_data(self):
         if os.path.exists(self.data_file):

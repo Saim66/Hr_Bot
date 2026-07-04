@@ -41,12 +41,9 @@ class Bot(BaseBot):
         # Refresh cache after potential command-based changes
         self.data_cache = self.cmd.load_data()
 
-
-    async def on_user_join(self, user, position):
-    # Check if this user has a saved welcome message in your data
-        welcome_msg = self.cmd.data["welcomes"].get(user.username.lower())
-        if welcome_msg:
-            await self.bot.highrise.chat(f"@{user.username} {welcome_msg}")
+    async def on_user_join(self, user: User, position: Position):
+        # Allow room to stabilize
+        await asyncio.sleep(2)
        
         try:
             # 1. Ban Check
@@ -73,12 +70,5 @@ class Bot(BaseBot):
             self.cmd.looping_users.pop(user.id, None)
 
 
-    # Inside main.py
     async def on_tip(self, sender, receiver, tip):
-        # We pass the event to the CommandHandler's on_tip
-        await self.cmd.on_tip(sender, receiver, tip)
-
-        
-    async def on_chat(self, user: User, message: str) -> None:
-        if message.lower().startswith("!givtips"):
-            await self.highrise.chat(f"@{user.username}, thanks for using the command!")
+        await self.cmd.on_tip(sender, receiver, tip)        

@@ -3,6 +3,7 @@ import asyncio
 import logging
 from highrise import BaseBot, Position, User
 from commands import CommandHandler
+from typing import Union
 
 # Configure logging for Railway/Render
 logging.basicConfig(level=logging.INFO)
@@ -16,6 +17,8 @@ class Bot(BaseBot):
         self._api_lock = asyncio.Semaphore(1) 
 
     async def on_start(self, session_metadata):
+        self.bot_id = session_metadata.user_id
+        self.cmd = CommandHandler(self)
         logger.info(f"✅ Bot Online in: {session_metadata.room_info.room_name}")
         asyncio.create_task(self.emote_engine())
 

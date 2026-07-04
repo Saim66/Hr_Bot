@@ -33,23 +33,14 @@ class CommandHandler:
         
         self.looping_users[target_name] = False
 
-    async def on_tip(self, sender, receiver, tip) -> None:
+    async def on_tip(self, sender: User, receiver: User, tip: Union[CurrencyItem, Item]) -> None:
         try:
-            # 1. Safety check: ensure 'tip' has the expected attributes
-            amount = getattr(tip, 'amount', 'unknown')
-            currency = getattr(tip, 'currency', 'amount')
-            
-            # 2. Safety check: Verify the receiver is indeed the bot
-            # We use self.bot.session_metadata.user_id if available, 
-            # otherwise just check the receiver object
-            if sender and hasattr(sender, 'username'):
-                msg = f"✨ Thank you @{sender.username} for the {amount} {currency} tip! Much appreciated!"
-                await self.bot.highrise.chat(msg)
-                print(f"DEBUG: Thanked {sender.username} for {amount} {currency}")
-        
+            if receiver.id == self.bot.bot_id:
+                amount = getattr(tip, 'amount', 'unknown')
+                currency = getattr(tip, 'currency', 'gold')
+                await self.bot.highrise.chat(f"✨ Thank you @{sender.username} for the {amount} {currency} tip!")
         except Exception as e:
-            # This prevents the bot from crashing if something goes wrong
-            print(f"DEBUG: Error in on_tip: {e}") 
+            print(f"Error in on_tip: {e}") 
 
     def load_data(self):
         if os.path.exists(self.data_file):
@@ -272,6 +263,60 @@ class CommandHandler:
                 await self.bot.highrise.chat(f"⏹️ Stopped your emote loop.")
             return
         
-        if trigger == "/tips":
-            await self.bot.highrise.chat(f"@{user.username}, here is how you can support the room with tips! 💎")
+        # --- WALLET COMMAND ---
+        if trigger == "/wallet" and is_owner:
+            try:
+                wallet = await self.bot.highrise.get_wallet()
+                gold_balance = 0
+                for item in wallet.content:
+                    # Look for gold specifically
+                    if item.type == "currency_item":
+                        gold_balance = item.amount
+                        break
+                await self.bot.highrise.chat(f"💰 Bot Wallet Balance: {gold_balance} Gold")
+            except Exception as e:
+                await self.bot.highrise.chat(f"❌ Error: {e}")
+            return
+
+        # --- TIP COMMAND (Single or All) ---
+        if trigger == "/tip" and is_owner:
+            if len(args) < 2:
+                await self.bot.highrise.chat("Usage: /tip [@username/all] [1, 5, 10, 50, 100, 500, 1k, 5k, 10k]")
+                return
+
+            target_input = args[0].replace("@", "").lower()
+            amount = args[1]
+            # Map common inputs to Highrise gold IDs
+            item_id = f"gold_bar_{amount}"
+            
+            # Verify the item_id is valid
+            valid_ids = ["gold_bar_1", "gold_bar_5", "gold_bar_10", "gold_bar_50", "gold_bar_100", 
+                         "gold_bar_500", "gold_bar_1k", "gold_bar_5000", "gold_bar_10k"]
+            
+            if item_id not in valid_ids:
+                await self.bot.highrise.chat("❌ Invalid amount. Use: 1, 5, 10, 50, 100, 500, 1k, 5k, 10k.")
+                return
+
+            room_users = (await self.bot.highrise.get_room_users()).content
+
+            if target_input == "all":
+                await self.bot.highrise.chat(f"💎 Tipping everyone {amount} gold...")
+                for user_obj, _ in room_users:
+                    if user_obj.id == self.bot.bot_id: continue 
+                    try:
+                        await self.bot.highrise.tip_user(user_obj.id, item_id)
+                        await asyncio.sleep(1) # Crucial to prevent rate limits
+                    except Exception as e:
+                        print(f"Failed to tip {user_obj.username}: {e}")
+                await self.bot.highrise.chat("✅ Finished tipping everyone!")
+            else:
+                target = next((r for r, _ in room_users if r.username.lower() == target_input), None)
+                if target:
+                    try:
+                        await self.bot.highrise.tip_user(target.id, item_id)
+                        await self.bot.highrise.chat(f"✨ Tipped {amount} gold to @{target.username}!")
+                    except Exception as e:
+                        await self.bot.highrise.chat(f"❌ Failed: {e}")
+                else:
+                    await self.bot.highrise.chat("❌ User not found.")
             return

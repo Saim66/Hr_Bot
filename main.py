@@ -41,7 +41,8 @@ class Bot(BaseBot):
         # Refresh cache after potential command-based changes
         self.data_cache = self.cmd.load_data()
 
-    async def on_user_join(self, user):
+
+    async def on_user_join(self, user, position):
     # Check if this user has a saved welcome message in your data
         welcome_msg = self.cmd.data["welcomes"].get(user.username.lower())
         if welcome_msg:

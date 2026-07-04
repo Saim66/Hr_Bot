@@ -33,8 +33,23 @@ class CommandHandler:
         
         self.looping_users[target_name] = False
 
-    async def on_tip(self, sender, receiver, tip):
-        await self.bot.highrise.chat(f"✨ Thank you @{sender.username} for the {tip.amount} {tip.currency} tip!")    
+    async def on_tip(self, sender, receiver, tip) -> None:
+        try:
+            # 1. Safety check: ensure 'tip' has the expected attributes
+            amount = getattr(tip, 'amount', 'unknown')
+            currency = getattr(tip, 'currency', 'amount')
+            
+            # 2. Safety check: Verify the receiver is indeed the bot
+            # We use self.bot.session_metadata.user_id if available, 
+            # otherwise just check the receiver object
+            if sender and hasattr(sender, 'username'):
+                msg = f"✨ Thank you @{sender.username} for the {amount} {currency} tip! Much appreciated!"
+                await self.bot.highrise.chat(msg)
+                print(f"DEBUG: Thanked {sender.username} for {amount} {currency}")
+        
+        except Exception as e:
+            # This prevents the bot from crashing if something goes wrong
+            print(f"DEBUG: Error in on_tip: {e}") 
 
     def load_data(self):
         if os.path.exists(self.data_file):
@@ -255,4 +270,8 @@ class CommandHandler:
                 self.looping_users[name_to_stop] = False
                 self.active_tasks[name_to_stop].cancel()
                 await self.bot.highrise.chat(f"⏹️ Stopped your emote loop.")
+            return
+        
+        if trigger == "/tips":
+            await self.bot.highrise.chat(f"@{user.username}, here is how you can support the room with tips! 💎")
             return

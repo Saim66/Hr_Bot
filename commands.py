@@ -266,25 +266,24 @@ class CommandHandler:
                 await self.bot.highrise.chat(f"⏹️ Stopped your emote loop.")
             return
         
-        # --- WALLET COMMAND ---
+        # --- WALLET COMMAND (SUMMATION) ---
         if trigger == "/wallet" and is_owner:
             try:
                 wallet = await self.bot.highrise.get_wallet()
-                print(f"DEBUG: Wallet response: {wallet}") # <--- THIS IS KEY
+                total_gold = 0
                 
-                gold_balance = 0
+                # Iterate through all items in the wallet content
                 for item in wallet.content:
-                    # Check if the item is specifically gold
-                    if item.type == "currency_item":
-                        gold_balance = item.amount
-                        break
+                    # Check if the item is related to currency or gold
+                    # We look for the 'amount' attribute in each item
+                    if hasattr(item, 'amount'):
+                        total_gold += item.amount
                 
-                await self.bot.highrise.chat(f"💰 Bot Wallet Balance: {gold_balance} Gold")
+                await self.bot.highrise.chat(f"💰 Bot Wallet Balance: {total_gold} Gold")
             except Exception as e:
-                await self.bot.highrise.chat(f"❌ Error: {e}")
-                print(f"DEBUG: Error in wallet: {e}")
+                await self.bot.highrise.chat(f"❌ Error checking wallet: {e}")
+                print(f"DEBUG Error: {e}")
             return
-
         # --- TIP COMMAND (Single or All) ---
         if trigger == "/tip" and is_owner:
             if len(args) < 2:

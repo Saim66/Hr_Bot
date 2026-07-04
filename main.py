@@ -1,6 +1,7 @@
 import os
 import asyncio
 import logging
+from highrise import Position, User, CurrencyItem, Item  #
 from highrise import BaseBot, Position, User
 from commands import CommandHandler
 from typing import Union
@@ -75,3 +76,4 @@ class Bot(BaseBot):
 
     async def on_tip(self, sender, receiver, tip):
         await self.cmd.on_tip(sender, receiver, tip)        
+        

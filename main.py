@@ -68,3 +68,7 @@ class Bot(BaseBot):
     async def on_user_leave(self, user: User) -> None:
         if hasattr(self.cmd, 'looping_users'):
             self.cmd.looping_users.pop(user.id, None)
+
+
+    async def on_tip(self, sender, receiver, tip):
+        await self.cmd.on_tip(sender, receiver, tip)        

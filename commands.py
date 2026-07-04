@@ -33,6 +33,9 @@ class CommandHandler:
         
         self.looping_users[target_name] = False
 
+    async def on_tip(self, sender, receiver, tip):
+        await self.bot.highrise.chat(f"✨ Thank you @{sender.username} for the {tip.amount} {tip.currency} tip!")    
+
     def load_data(self):
         if os.path.exists(self.data_file):
             try:

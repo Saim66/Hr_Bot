@@ -19,42 +19,19 @@ class CommandHandler:
         self.looping_users = {}
         self.active_tasks = {}
 
-    async def execute(self, user, message: str) -> None:
-        trigger = message.split(" ")[0].lower()
-        args = message.split(" ")[1:]
-
-        # --- EMOTE LOOP COMMAND ---
-        if trigger in EMOTE_DICT:
-            actual_emote = EMOTE_DICT[trigger]
-            # Use the target if mentioned, otherwise the person who sent the command
-            target_name = args[0].replace("@", "").lower() if args else user.username.lower()
-            
-            room_users = (await self.bot.highrise.get_room_users()).content
-            target = next((r for r, _ in room_users if r.username.lower() == target_name), None)
-            
-            if target:
-                # 1. Stop any existing loop for this specific target before starting a new one
-                if target_name in self.active_tasks:
-                    self.looping_users[target_name] = False
-                    self.active_tasks[target_name].cancel()
-                    await asyncio.sleep(0.5) 
-                
-                # 2. Start new loop
-                self.looping_users[target_name] = True
-                task = asyncio.create_task(self.loop_emote(actual_emote, target.id, target_name))
-                self.active_tasks[target_name] = task
-                await self.bot.highrise.chat(f"✨ Looping {trigger} for @{target_name}!")
-            return
-
-        # --- STOP COMMAND ---
-        if trigger in ["stop", "0"]:
-            # Stop the loop for the person who sent the command
-            name_to_stop = user.username.lower()
-            if name_to_stop in self.active_tasks:
-                self.looping_users[name_to_stop] = False
-                self.active_tasks[name_to_stop].cancel()
-                await self.bot.highrise.chat(f"⏹️ Stopped your emote loop.")
-            return
+    async def loop_emote(self, emote_id, target_id, target_name):
+        self.looping_users[target_name] = True
+        print(f"DEBUG: Starting loop for {target_name} with {emote_id}")
+        
+        while self.looping_users.get(target_name, False):
+            try:
+                await self.bot.highrise.send_emote(emote_id, target_id)
+                await asyncio.sleep(6) # Emote duration
+            except Exception as e:
+                print(f"DEBUG: Error in loop: {e}")
+                break
+        
+        self.looping_users[target_name] = False
 
     def load_data(self):
         if os.path.exists(self.data_file):
@@ -151,17 +128,6 @@ class CommandHandler:
                 await self.bot.highrise.chat("❌ User not found.")
             return
 
-       
-        # --- STOP COMMAND ---
-        if trigger in ["stop", "0"]:
-            # Stop the loop for the person who sent the command
-            name_to_stop = user.username.lower()
-            if name_to_stop in self.active_tasks:
-                self.looping_users[name_to_stop] = False
-                self.active_tasks[name_to_stop].cancel()
-                await self.bot.highrise.chat(f"⏹️ Stopped your emote loop.")
-            return
-        
         if trigger in self.locations:
             # Permission check
             if trigger in self.data.get("restricted", []) and not is_owner:
@@ -258,30 +224,29 @@ class CommandHandler:
         # --- EMOTE LOOP COMMAND ---
         if trigger in EMOTE_DICT:
             actual_emote = EMOTE_DICT[trigger]
-            # If no user mentioned, target the person who typed it
+            # Use the target if mentioned, otherwise the person who sent the command
             target_name = args[0].replace("@", "").lower() if args else user.username.lower()
             
-            # Find the target user
             room_users = (await self.bot.highrise.get_room_users()).content
             target = next((r for r, _ in room_users if r.username.lower() == target_name), None)
             
             if target:
-                # STOP PREVIOUS LOOP IF EXISTS
+                # 1. Stop any existing loop for this specific target before starting a new one
                 if target_name in self.active_tasks:
                     self.looping_users[target_name] = False
                     self.active_tasks[target_name].cancel()
-                    await asyncio.sleep(0.5) # Wait for task to clean up
+                    await asyncio.sleep(0.5) 
                 
-                # START NEW LOOP
+                # 2. Start new loop
                 self.looping_users[target_name] = True
                 task = asyncio.create_task(self.loop_emote(actual_emote, target.id, target_name))
                 self.active_tasks[target_name] = task
-                
-                await self.bot.highrise.chat(f"✨ Now looping {trigger} for @{target_name}!")
+                await self.bot.highrise.chat(f"✨ Looping {trigger} for @{target_name}!")
             return
 
         # --- STOP COMMAND ---
         if trigger in ["stop", "0"]:
+            # Stop the loop for the person who sent the command
             name_to_stop = user.username.lower()
             if name_to_stop in self.active_tasks:
                 self.looping_users[name_to_stop] = False

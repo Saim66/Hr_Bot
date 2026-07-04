@@ -1,10 +1,11 @@
 import asyncio
 import json
 import os
-from highrise import Position, User, CurrencyItem, Item  #
-from highrise import Position
+from typing import Union  # Added this for the tip function
+from highrise import Position, User, CurrencyItem, Item
 import config
 from emotes import EMOTE_DICT
+
 
 class CommandHandler:
     def __init__(self, bot):
@@ -269,15 +270,19 @@ class CommandHandler:
         if trigger == "/wallet" and is_owner:
             try:
                 wallet = await self.bot.highrise.get_wallet()
+                print(f"DEBUG: Wallet response: {wallet}") # <--- THIS IS KEY
+                
                 gold_balance = 0
                 for item in wallet.content:
-                    # Look for gold specifically
+                    # Check if the item is specifically gold
                     if item.type == "currency_item":
                         gold_balance = item.amount
                         break
+                
                 await self.bot.highrise.chat(f"💰 Bot Wallet Balance: {gold_balance} Gold")
             except Exception as e:
                 await self.bot.highrise.chat(f"❌ Error: {e}")
+                print(f"DEBUG: Error in wallet: {e}")
             return
 
         # --- TIP COMMAND (Single or All) ---

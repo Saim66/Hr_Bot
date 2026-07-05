@@ -4,7 +4,7 @@ import os
 from typing import Union  # Added this for the tip function
 from highrise import Position, User, CurrencyItem, Item
 import config
-from emotes import ALL_EMOTES, DANCE_EMOTES
+from emotes import EMOTE_DICT
 
 
 class CommandHandler:
@@ -329,4 +329,32 @@ class CommandHandler:
                         await self.bot.highrise.chat(f"❌ Failed: {e}")
                 else:
                     await self.bot.highrise.chat("❌ User not found.")
+            return
+        
+        # --- WHISPER LIST EMOTES COMMAND ---
+        if trigger == "/list":
+            # Default to page 1 if no page is specified
+            page = int(args[1]) if len(args) > 1 and args[1].isdigit() else 1
+            
+            # 10 items per page
+            start = (page - 1) * 10
+            end = start + 10
+            
+            # Fetch the specific chunk from the master list
+            chunk = EMOTE_MASTER_LIST[start:end]
+            
+            # If the page is empty, tell the user
+            if not chunk:
+                await self.bot.highrise.send_whisper(user.id, "❌ That page does not exist.")
+                return
+            
+            # Format the message
+            msg = f"📜 Page {page} (Emotes {start} to {min(end, len(EMOTE_MASTER_LIST)) - 1}):\n"
+            for i, emote in enumerate(chunk, start=start):
+                msg += f"{i}: {emote['name']}\n"
+            
+            msg += "\nUse /emote [number] to play!"
+            
+            # Whisper the message directly to the user
+            await self.bot.highrise.send_whisper(user.id, msg)
             return

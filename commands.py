@@ -341,7 +341,7 @@ class CommandHandler:
             end = start + 10
             
             # Fetch the specific chunk from the master list
-            chunk = EMOTE_MASTER_LIST[start:end]
+            chunk = EMOTE_DICT[start:end]
             
             # If the page is empty, tell the user
             if not chunk:
@@ -349,7 +349,7 @@ class CommandHandler:
                 return
             
             # Format the message
-            msg = f"📜 Page {page} (Emotes {start} to {min(end, len(EMOTE_MASTER_LIST)) - 1}):\n"
+            msg = f"📜 Page {page} (Emotes {start} to {min(end, len(EMOTE_DICT)) - 1}):\n"
             for i, emote in enumerate(chunk, start=start):
                 msg += f"{i}: {emote['name']}\n"
             

@@ -229,11 +229,13 @@ EMOTE_DICT= {
     "relaxed": "idle_layingdown2",
     "lay": "idle_layingdown2",
     "confused": "emote-confused",
+    "laid": "sit-open",
     "laid2": "sit-idle-laidBack",
     "kickingback": "sit-idle-laidBack",
     "hero": "emote-hero",
     "attentive": "idle-layingdown",
     "spider": "emote-spiderman",
     "uww": "idle-uwu"
+    "star": "emote-threadexchange-star",
    
 }

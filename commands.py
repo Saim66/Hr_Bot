@@ -4,7 +4,7 @@ import os
 from typing import Union  # Added this for the tip function
 from highrise import Position, User, CurrencyItem, Item
 import config
-from emotes import EMOTE_DICT
+from emotes import ALL_EMOTES, DANCE_EMOTES
 
 
 class CommandHandler:

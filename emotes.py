@@ -1,5 +1,6 @@
 # emotes.py
 EMOTE_DICT= {
+    "star": "emote-threadexchange-star",
     "monkey": "dance-pennywise",
     "duckwalk": "dance-duckwalk",
     "disco": "emote-disco",
@@ -236,6 +237,4 @@ EMOTE_DICT= {
     "attentive": "idle-layingdown",
     "spider": "emote-spiderman",
     "uww": "idle-uwu"
-    "star": "emote-threadexchange-star",
-   
 }

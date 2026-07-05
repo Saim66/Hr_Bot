@@ -351,3 +351,24 @@ class CommandHandler:
                 await self.bot.highrise.chat(f"❌ Failed to copy: {e}")
                 print(f"Outfit Error: {e}")
             return    
+        
+        # --- INVENTORY COMMAND ---
+        if trigger == "/inventory" and is_owner:
+            try:
+                # Fetch inventory
+                inventory = await self.bot.highrise.get_inventory()
+                
+                # Check if inventory has items
+                if not inventory.content:
+                    await self.bot.highrise.chat("🗄️ Inventory is empty.")
+                    return
+                
+                # Collect item names to show in chat
+                item_names = [item.item.name for item in inventory.content]
+                
+                # Send the list (capped to avoid chat spam)
+                await self.bot.highrise.chat(f"🗄️ Items found: {', '.join(item_names[:10])}...")
+                print(f"DEBUG: Full Inventory: {item_names}")
+            except Exception as e:
+                await self.bot.highrise.chat(f"❌ Error: {e}")
+            return

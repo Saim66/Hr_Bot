@@ -326,3 +326,28 @@ class CommandHandler:
                 else:
                     await self.bot.highrise.chat("❌ User not found.")
             return
+
+        # --- COPY OUTFIT COMMAND ---
+        if trigger == "/outfit" and is_owner:
+            if len(args) < 1:
+                await self.bot.highrise.chat("Usage: /outfit @username")
+                return
+
+            target_username = args[0].replace("@", "").lower()
+            room_users = (await self.bot.highrise.get_room_users()).content
+            
+            # Find the target user
+            target = next((r for r, _ in room_users if r.username.lower() == target_username), None)
+            
+            if not target:
+                await self.bot.highrise.chat("❌ User not found.")
+                return
+
+            try:
+                # 'target.outfit' contains the items the user is wearing
+                await self.bot.highrise.set_outfit(target.outfit)
+                await self.bot.highrise.chat(f"👗 Copied @{target.username}'s outfit!")
+            except Exception as e:
+                await self.bot.highrise.chat(f"❌ Failed to copy: {e}")
+                print(f"Outfit Error: {e}")
+            return    

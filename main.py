@@ -80,17 +80,23 @@ class Bot(BaseBot):
         await self.cmd.on_tip(sender, receiver, tip) 
 
     async def on_user_move(self, user_id: str, pos: Position):
-        # Your Dance Floor Boundaries
+        # Ensure user_id is a string
+        uid = str(user_id)
+        
+        # Dance Floor Boundaries
         is_on_floor = 2.5 <= pos.x <= 8.5 and 14.5 <= pos.z <= 21.5
 
         if is_on_floor:
-            if user_id not in self.dancing_users:
-                self.dancing_users.add(user_id)
-                # Use this logic to get the ID from your specific list structure
-                # This selects the 'disco' emote (Index 2)
+            # Check using the string 'uid'
+            if uid not in self.dancing_users:
+                self.dancing_users.add(uid)
+                
+                # Fetch ID from your specific emote list structure
                 emote_data = EMOTE_LIST[2] 
                 emote_id = list(emote_data.values())[0]
-                await self.highrise.send_emote(emote_id, user_id)
+                
+                await self.highrise.send_emote(emote_id, uid)
         else:
-            if user_id in self.dancing_users:
-                self.dancing_users.remove(user_id)
+            # Check using the string 'uid'
+            if uid in self.dancing_users:
+                self.dancing_users.remove(uid)

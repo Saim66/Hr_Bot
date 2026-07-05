@@ -5,6 +5,7 @@ from highrise import Position, User, CurrencyItem, Item  #
 from highrise import BaseBot, Position, User
 from commands import CommandHandler
 from typing import Union
+from emotes import EMOTE_LIST
 
 # Configure logging for Railway/Render
 logging.basicConfig(level=logging.INFO)
@@ -16,6 +17,7 @@ class Bot(BaseBot):
         self.cmd = CommandHandler(self)
         self.data_cache = self.cmd.load_data()
         self._api_lock = asyncio.Semaphore(1) 
+        self.dancing_users = set()
 
     async def on_start(self, session_metadata):
         self.bot_id = session_metadata.user_id
@@ -75,5 +77,20 @@ class Bot(BaseBot):
 
 
     async def on_tip(self, sender, receiver, tip):
-        await self.cmd.on_tip(sender, receiver, tip)        
-        
+        await self.cmd.on_tip(sender, receiver, tip) 
+
+    async def on_user_move(self, user_id: str, pos: Position):
+        # Your Dance Floor Boundaries
+        is_on_floor = 2.5 <= pos.x <= 8.5 and 14.5 <= pos.z <= 21.5
+
+        if is_on_floor:
+            if user_id not in self.dancing_users:
+                self.dancing_users.add(user_id)
+                # Use this logic to get the ID from your specific list structure
+                # This selects the 'disco' emote (Index 2)
+                emote_data = EMOTE_LIST[2] 
+                emote_id = list(emote_data.values())[0]
+                await self.highrise.send_emote(emote_id, user_id)
+        else:
+            if user_id in self.dancing_users:
+                self.dancing_users.remove(user_id)

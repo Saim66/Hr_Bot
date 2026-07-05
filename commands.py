@@ -45,26 +45,8 @@ class CommandHandler:
         except Exception as e:
             print(f"Error in on_tip: {e}")
 
-    async def change_hair(self, hair_id: str):
-        try:
-            # 1. Fetch the bot's current outfit so we don't lose the eyes/mouth/body
-            response = await self.bot.highrise.get_my_outfit()
-            current_outfit = response.outfit
+    
 
-            # 2. Filter out the old hair (remove anything that starts with 'hair_front')
-            new_outfit = [item for item in current_outfit if not item.id.startswith("hair_front")]
-
-            # 3. Create the new Item object
-            # Note: Import 'Item' at the top of commands.py if you haven't already
-            new_hair = Item(type="clothing", amount=1, id=hair_id, account_bound=False, active_palette=1)
-            new_outfit.append(new_hair)
-
-            # 4. Apply the new outfit
-            await self.bot.highrise.set_outfit(new_outfit)
-            await self.bot.highrise.chat(f"✨ Hair changed to {hair_id}!")
-        except Exception as e:
-            await self.bot.highrise.chat(f"❌ Error: {e}")
-                    
 
     def load_data(self):
         if os.path.exists(self.data_file):
@@ -98,8 +80,7 @@ class CommandHandler:
         
         trigger = parts[0]
         args = parts[1:]
-        args = message.split()
-        trigger = args[0].lower()
+        
 
         is_owner = user.username.lower() == config.OWNER_USERNAME.lower()
         is_vip = user.username.lower() in self.data.get("vips", []) or is_owner
@@ -348,33 +329,4 @@ class CommandHandler:
                         await self.bot.highrise.chat(f"❌ Failed: {e}")
                 else:
                     await self.bot.highrise.chat("❌ User not found.")
-            return
-
-        # --- SAFE OUTFIT SWAP ---
-        if trigger == "/sethair" and is_owner:
-            if len(args) < 2:
-                await self.bot.highrise.chat("Usage: /sethair [hair_id]")
-                return
-            await self.change_hair(args[1])
-
-
-        # --- INVENTORY COMMAND ---
-        if trigger == "/inventory" and is_owner:
-            try:
-                # Fetch inventory
-                inventory = await self.bot.highrise.get_inventory()
-                
-                # Check if inventory has items
-                if not inventory.content:
-                    await self.bot.highrise.chat("🗄️ Inventory is empty.")
-                    return
-                
-                # Collect item names to show in chat
-                item_names = [item.item.name for item in inventory.content]
-                
-                # Send the list (capped to avoid chat spam)
-                await self.bot.highrise.chat(f"🗄️ Items found: {', '.join(item_names[:10])}...")
-                print(f"DEBUG: Full Inventory: {item_names}")
-            except Exception as e:
-                await self.bot.highrise.chat(f"❌ Error: {e}")
             return

@@ -331,33 +331,26 @@ class CommandHandler:
                     await self.bot.highrise.chat("❌ User not found.")
             return
         
-        # --- WHISPER LIST EMOTES COMMAND ---
+        # --- SEND FULL EMOTE LIST VIA WHISPER ---
         if trigger == "/list":
-            # 1. Convert the dictionary items into a list of dictionaries
-            # This makes the emotes sliceable (ordered)
+            # 1. Convert dictionary to list
             emote_list = [{"name": name, "id": eid} for name, eid in EMOTE_DICT.items()]
             
-            # 2. Default to page 1
-            page = int(args[1]) if len(args) > 1 and args[1].isdigit() else 1
+            # 2. Whisper a starting message
+            await self.bot.highrise.send_whisper(user.id, "📜 Sending the full emote list... please wait.")
             
-            # 3. Calculate start and end indices
-            start = (page - 1) * 10
-            end = start + 10
-            
-            # 4. Now slicing will work because 'emote_list' is a real list
-            chunk = emote_list[start:end]
-            
-            if not chunk:
-                await self.bot.highrise.send_whisper(user.id, "❌ That page does not exist.")
-                return
-            
-            # 5. Format the message
-            msg = f"📜 Page {page} (Emotes {start} to {min(end, len(emote_list)) - 1}):\n"
-            for i, emote in enumerate(chunk, start=start):
-                msg += f"{i}: {emote['name']}\n"
-            
-            msg += "\nUse /emote [number] to play!"
-            
-            # 6. Whisper the message
-            await self.bot.highrise.send_whisper(user.id, msg)
+            # 3. Break the list into chunks of 15 to stay under the whisper limit
+            chunk_size = 15
+            for i in range(0, len(emote_list), chunk_size):
+                chunk = emote_list[i : i + chunk_size]
+                
+                # Format this specific chunk
+                msg = ""
+                for index, emote in enumerate(chunk, start=i):
+                    msg += f"{index}: {emote['name']}\n"
+                
+                # Send the chunk as a separate whisper
+                await self.bot.highrise.send_whisper(user.id, msg)
+                
+            await self.bot.highrise.send_whisper(user.id, "✅ End of list. Use /emote [number] to play!")
             return

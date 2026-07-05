@@ -333,28 +333,31 @@ class CommandHandler:
         
         # --- WHISPER LIST EMOTES COMMAND ---
         if trigger == "/list":
-            # Default to page 1 if no page is specified
+            # 1. Convert the dictionary items into a list of dictionaries
+            # This makes the emotes sliceable (ordered)
+            emote_list = [{"name": name, "id": eid} for name, eid in EMOTE_DICT.items()]
+            
+            # 2. Default to page 1
             page = int(args[1]) if len(args) > 1 and args[1].isdigit() else 1
             
-            # 10 items per page
+            # 3. Calculate start and end indices
             start = (page - 1) * 10
             end = start + 10
             
-            # Fetch the specific chunk from the master list
-            chunk = EMOTE_DICT[start:end]
+            # 4. Now slicing will work because 'emote_list' is a real list
+            chunk = emote_list[start:end]
             
-            # If the page is empty, tell the user
             if not chunk:
                 await self.bot.highrise.send_whisper(user.id, "❌ That page does not exist.")
                 return
             
-            # Format the message
-            msg = f"📜 Page {page} (Emotes {start} to {min(end, len(EMOTE_DICT)) - 1}):\n"
+            # 5. Format the message
+            msg = f"📜 Page {page} (Emotes {start} to {min(end, len(emote_list)) - 1}):\n"
             for i, emote in enumerate(chunk, start=start):
                 msg += f"{i}: {emote['name']}\n"
             
             msg += "\nUse /emote [number] to play!"
             
-            # Whisper the message directly to the user
+            # 6. Whisper the message
             await self.bot.highrise.send_whisper(user.id, msg)
             return

@@ -331,26 +331,18 @@ class CommandHandler:
                     await self.bot.highrise.chat("❌ User not found.")
             return
         
-        # --- SEND FULL EMOTE LIST VIA WHISPER ---
-        if trigger == "/list":
-            # 1. Convert dictionary to list
-            emote_list = [{"name": name, "id": eid} for name, eid in EMOTE_DICT.items()]
+        # --- COORDINATE COMMAND ---
+        if trigger == "/cords":
+            # Get the user's current position from the room users list
+            # We need to find the user in the room state
+            room_users = await self.bot.highrise.get_room_users()
             
-            # 2. Whisper a starting message
-            await self.bot.highrise.send_whisper(user.id, "📜 Sending the full emote list... please wait.")
+            for room_user, position in room_users.content:
+                if room_user.id == user.id:
+                    # position is an object containing x, y, z
+                    coords = f"📍 Your Coordinates: X={position.x}, Y={position.y}, Z={position.z}"
+                    await self.bot.highrise.send_whisper(user.id, coords)
+                    return
             
-            # 3. Break the list into chunks of 15 to stay under the whisper limit
-            chunk_size = 15
-            for i in range(0, len(emote_list), chunk_size):
-                chunk = emote_list[i : i + chunk_size]
-                
-                # Format this specific chunk
-                msg = ""
-                for index, emote in enumerate(chunk, start=i):
-                    msg += f"{index}: {emote['name']}\n"
-                
-                # Send the chunk as a separate whisper
-                await self.bot.highrise.send_whisper(user.id, msg)
-                
-            await self.bot.highrise.send_whisper(user.id, "✅ End of list. Use /emote [number] to play!")
+            await self.bot.highrise.send_whisper(user.id, "❌ Could not find your position.")
             return

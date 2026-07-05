@@ -66,6 +66,9 @@ EMOTE_DICT = {
     "repose": "sit-relaxed",
     "attentive": "idle-layingdown",
     "spider": "emote-spiderman",
+    "uwi": "idle-uwu",
+    "puppet": "emote-puppet",
+
 
     
     

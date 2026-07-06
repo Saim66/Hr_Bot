@@ -2,56 +2,64 @@ from highrise import Position
 
 async def execute(handler, user, message):
     parts = message.split()
-    if len(parts) < 2:
+    if len(parts) < 1:
         return
     
     cmd = parts[0].lstrip("/").lower()
-    target_username = parts[1].lstrip("@").lower()
     
-    # 1. Fetch everyone in the room
+    # 1. Get room user data
     room_users = await handler.bot.highrise.get_room_users()
     
+    # 2. Find Bot position and handle target user info
+    bot_pos = None
     target_id = None
     target_pos = None
-    bot_pos = None
     
-    # 2. Find target's data and Bot's position
+    # Find bot position
     for u, pos in room_users.content:
-        if u.username.lower() == target_username:
-            target_id = u.id
-            target_pos = pos
         if u.id == handler.bot.user_id:
             bot_pos = pos
-            
-    if not target_id:
-        await handler.bot.highrise.chat(f"@{target_username} not found.")
-        return
+            break
 
-    # 3. COMMAND LOGIC
-    # /s @user -> Teleport TARGET to BOT
+    # 3. Handle Commands
+    
+    # --- SUMMON (/s @user) ---
     if cmd == "s":
-        if bot_pos:
+        if len(parts) < 2:
+            await handler.bot.highrise.chat("Usage: /s @username")
+            return
+        target_name = parts[1].lstrip("@").lower()
+        for u, pos in room_users.content:
+            if u.username.lower() == target_name:
+                target_id = u.id
+                break
+        if target_id and bot_pos:
             await handler.bot.highrise.teleport(target_id, bot_pos)
-            await handler.bot.highrise.chat(f"✨ Summoned @{target_username}!")
-            
-    # /to @user -> Teleport BOT to TARGET
+            await handler.bot.highrise.chat(f"✨ Summoned @{target_name} to me!")
+        else:
+            await handler.bot.highrise.chat(f"❌ User @{target_name} not found.")
+
+    # --- TELEPORT (/to @user) ---
     elif cmd == "to":
+        if len(parts) < 2:
+            await handler.bot.highrise.chat("Usage: /to @username")
+            return
+        target_name = parts[1].lstrip("@").lower()
+        for u, pos in room_users.content:
+            if u.username.lower() == target_name:
+                target_pos = pos
+                break
         if target_pos:
             await handler.bot.highrise.teleport(handler.bot.user_id, target_pos)
-            await handler.bot.highrise.chat(f"🚀 Teleporting to @{target_username}!")
-)
+            await handler.bot.highrise.chat(f"🚀 Teleporting to @{target_name}!")
+        else:
+            await handler.bot.highrise.chat(f"❌ User @{target_name} not found.")
 
-
-    # 3. CORDS: Get your own current coordinates
+    # --- CORDS (/cords) ---
     elif cmd == "cords":
-        room_users = await handler.bot.highrise.get_room_users()
-        found = False
         for u, pos in room_users.content:
             if u.id == user.id:
                 await handler.bot.highrise.chat(
                     f"@{user.username}: {pos.x}, {pos.y}, {pos.z} | Facing: {pos.facing}"
                 )
-                found = True
                 break
-        if not found:
-            await handler.bot.highrise.chat("❌ Could not find your coordinates.")

@@ -22,6 +22,7 @@ async def handle_command(handler_instance, user, message):
         "all": "emote_all",
         "wallet": "wallet",
         "tip": "tip",
+        "welcome": "welcome",
         "stop": "loops", "0": "loops"
     }
 

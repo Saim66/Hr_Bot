@@ -47,7 +47,6 @@ class Bot(BaseBot):
         # Refresh cache after potential command-based changes
         self.data_cache = self.cmd.load_data()
 
-    # Add 'position' as the third argument
     async def on_user_join(self, user: User, position: Position) -> None:
         print(f"DEBUG: {user.username} joined! Checking data...")
 
@@ -55,33 +54,33 @@ class Bot(BaseBot):
             handler = self.cmd
             user_lower = user.username.lower()
 
-            # Log what the bot sees
-            print(f"DEBUG: Welcomes dictionary: {handler.data.get('welcomes', {})}")
-
-            # 1. Ban Check
+            # 1. Ban/Restricted Check
             if user_lower in handler.data.get("restricted", []):
                 print(f"DEBUG: {user.username} is restricted.")
+                # Ensure you are using the correct coordinate import
                 await self.highrise.teleport(user.id, Position(0, 0, 0, "FrontLeft"))
                 return
 
             # 2. VIP Check
             if user_lower in handler.data.get("vips", []):
                 print(f"DEBUG: {user.username} is VIP.")
-                await self.highrise.chat(f"Welcome back, VIP @{user.username}!")
-                return
+                await self.highrise.chat(f"👑 Welcome back, VIP @{user.username}!")
+                return # Stop here for VIPs
 
-            # 3. Custom Welcome
+            # 3. Custom Welcome Check
             welcomes = handler.data.get("welcomes", {})
             if user_lower in welcomes:
                 msg = welcomes[user_lower]
-                print(f"DEBUG: Found welcome: {msg}") # Will show up in logs if it reaches here
+                print(f"DEBUG: Found welcome: {msg}")
                 final_msg = msg.replace("{username}", user.username)
                 await self.highrise.chat(f"👋 @{user.username}, {final_msg}")
             else:
-                print(f"DEBUG: No welcome found for {user_lower}")
+                # --- FIX: ADDED DEFAULT WELCOME HERE ---
+                print(f"DEBUG: No custom welcome found for {user_lower}, sending default.")
+                await self.highrise.chat(f"👋 Hello @{user.username}, welcome to the room!")
 
         except Exception as e:
-            print(f"CRITICAL ERROR: {e}")
+            print(f"CRITICAL ERROR in on_user_join: {e}")
 
     async def on_user_leave(self, user: User) -> None:
         if hasattr(self.cmd, 'looping_users'):

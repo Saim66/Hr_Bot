@@ -13,19 +13,31 @@ async def execute(handler, user, message):
         await handler.bot.highrise.chat("Emote not found.")
         return
 
-    # Cancel existing if already running
+    # Cancel existing task if running
     await handler.stop_all_emotes("all_command")
+
+    # Send confirmation message to the room
+    await handler.bot.highrise.chat(f"✨ Starting '{emote_name}' loop for everyone!")
 
     async def emote_loop():
         try:
             while True:
+                # Check connection before API calls to prevent crashes
+                if not handler.bot.highrise.ws or handler.bot.highrise.ws.closed:
+                    break
+                
                 room_users = await handler.bot.highrise.get_room_users()
                 for room_user, _ in room_users.content:
-                    await handler.bot.highrise.send_emote(emote_id, room_user.id)
-                await asyncio.sleep(6) # Loop every 6 seconds
+                    try:
+                        await handler.bot.highrise.send_emote(emote_id, room_user.id)
+                    except Exception:
+                        continue # Skip users where emote fails
+                
+                await asyncio.sleep(6)
         except asyncio.CancelledError:
             pass
+        except Exception as e:
+            print(f"Loop error: {e}")
 
-    # Start the task and store it
-    handler.tasks["all_command"] = asyncio.create_task(emote_loop())
-    await handler.bot.highrise.chat(f"Started looping {emote_name} for everyone!")
+    # Start the task and store it in handler.active_tasks
+    handler.active_tasks["all_command"] = asyncio.create_task(emote_loop())

@@ -47,9 +47,16 @@ class Bot(BaseBot):
         # Refresh cache after potential command-based changes
         self.data_cache = self.cmd.load_data()
 
-    async def on_user_join(self, user: User, position: Position):
-        # Allow room to stabilize
-        await asyncio.sleep(2)
+    # In your main.py bot class:
+
+async def on_user_join(self, user: User) -> None:
+    # Check if a welcome message exists for this user in your data
+    target_name = user.username.lower()
+    if target_name in self.command_handler.data["welcomes"]:
+        msg = self.command_handler.data["welcomes"][target_name]
+        # Replace {username} with the user's name if you want dynamic messages
+        final_msg = msg.replace("{username}", user.username)
+        await self.highrise.chat(f"👋 @{user.username}, {final_msg}")
        
         try:
             # 1. Ban Check
@@ -78,3 +85,4 @@ class Bot(BaseBot):
 
     async def on_tip(self, sender, receiver, tip):
         await self.cmd.on_tip(sender, receiver, tip) 
+        

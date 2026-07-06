@@ -1,32 +1,28 @@
 import os
 import asyncio
 import logging
-from highrise import Position, User, CurrencyItem, Item  #
 from highrise import BaseBot, Position, User
 from bot_commands import CommandHandler
-from typing import Union
-from emotes import EMOTE_LIST
 
-# Configure logging for Railway/Render
+# Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class Bot(BaseBot):
     def __init__(self):
         super().__init__()
+        # Initialize user_id here so it exists from the start
+        self.user_id = None 
         self.cmd = CommandHandler(self)
-        self.data_cache = self.cmd.load_data()
         self._api_lock = asyncio.Semaphore(1) 
-        self.dancing_users = set()
 
     async def on_start(self, session_metadata):
-        self.bot_id = session_metadata.user_id
-        self.cmd = CommandHandler(self)
+        # Assign to user_id so your movement commands can find it
+        self.user_id = session_metadata.user_id
         logger.info(f"✅ Bot Online in: {session_metadata.room_info.room_name}")
         asyncio.create_task(self.emote_engine())
 
     async def safe_api_call(self, coro):
-        """Prevents API flooding and handles disconnects silently."""
         async with self._api_lock:
             try:
                 return await coro
@@ -36,6 +32,7 @@ class Bot(BaseBot):
 
     async def emote_engine(self):
         while True:
+            # Check if looping_users exists and has items
             if hasattr(self.cmd, 'looping_users') and self.cmd.looping_users:
                 for user_id, official_id in list(self.cmd.looping_users.items()):
                     await self.safe_api_call(self.highrise.send_emote(official_id, user_id))
@@ -43,50 +40,37 @@ class Bot(BaseBot):
             await asyncio.sleep(1)
 
     async def on_chat(self, user: User, message: str) -> None:
+        # Pass the message to your command handler
         await self.cmd.execute(user, message)
-        # Refresh cache after potential command-based changes
-        self.data_cache = self.cmd.load_data()
 
     async def on_user_join(self, user: User, position: Position) -> None:
-        print(f"DEBUG: {user.username} joined! Checking data...")
-
         try:
-            handler = self.cmd
             user_lower = user.username.lower()
+            welcomes = self.cmd.data.get("welcomes", {})
+            vips = self.cmd.data.get("vips", [])
+            restricted = self.cmd.data.get("restricted", [])
 
-            # 1. Ban/Restricted Check
-            if user_lower in handler.data.get("restricted", []):
-                print(f"DEBUG: {user.username} is restricted.")
-                # Ensure you are using the correct coordinate import
+            if user_lower in restricted:
                 await self.highrise.teleport(user.id, Position(0, 0, 0, "FrontLeft"))
                 return
 
-            # 2. VIP Check
-            if user_lower in handler.data.get("vips", []):
-                print(f"DEBUG: {user.username} is VIP.")
+            if user_lower in vips:
                 await self.highrise.chat(f"👑 Welcome back, VIP @{user.username}!")
-                return # Stop here for VIPs
+                return
 
-            # 3. Custom Welcome Check
-            welcomes = handler.data.get("welcomes", {})
             if user_lower in welcomes:
-                msg = welcomes[user_lower]
-                print(f"DEBUG: Found welcome: {msg}")
-                final_msg = msg.replace("{username}", user.username)
+                final_msg = welcomes[user_lower].replace("{username}", user.username)
                 await self.highrise.chat(f"👋 @{user.username}, {final_msg}")
             else:
-                # --- FIX: ADDED DEFAULT WELCOME HERE ---
-                print(f"DEBUG: No custom welcome found for {user_lower}, sending default.")
                 await self.highrise.chat(f"👋 Hello @{user.username}, welcome to the room!")
 
         except Exception as e:
-            print(f"CRITICAL ERROR in on_user_join: {e}")
+            logger.error(f"CRITICAL ERROR in on_user_join: {e}")
 
     async def on_user_leave(self, user: User) -> None:
         if hasattr(self.cmd, 'looping_users'):
             self.cmd.looping_users.pop(user.id, None)
 
-
     async def on_tip(self, sender, receiver, tip):
-        await self.cmd.on_tip(sender, receiver, tip) 
-        
+        if hasattr(self.cmd, 'on_tip'):
+            await self.cmd.on_tip(sender, receiver, tip)

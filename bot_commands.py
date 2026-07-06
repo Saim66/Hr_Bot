@@ -55,7 +55,7 @@ class CommandHandler:
         self.loc_file = os.path.join(self.data_dir, "locations.json")
 
         if not os.path.exists(self.data_dir): os.makedirs(self.data_dir)
-        
+        self.tasks = {}
         self.data = self.load_data()
         self.locations = self.load_locations()
         self.looping_users = {}

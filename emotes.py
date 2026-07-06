@@ -304,4 +304,9 @@ EMOTE_LIST = [
     {"pv": "dance-popularvibe"},
     {"swag": "dance-swagbounce"},
     {"mine": "dance-mine"},
+    {"freshstep": "dance-freshprince"},
+    {"cloudsit": "bag_n-cloudsit"},
+    {"stunt": "emote-outfit3"},
+    {"diva": "emote-threadexchange-posing"},
+    {"stunt2": "emote-outfit2"},
 ]

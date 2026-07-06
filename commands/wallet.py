@@ -1,9 +1,16 @@
-# commands/wallet.py
-
 async def execute(handler, user, message):
     try:
+        # Highrise provides a way to get the bot's own wallet
         wallet = await handler.bot.highrise.get_wallet()
-        total_gold = sum(item.amount for item in wallet.content if hasattr(item, 'amount'))
-        await handler.bot.highrise.chat(f"💰 Bot Wallet Balance: {total_gold} Gold")
+        
+        # Format the wallet response
+        # The API usually returns a list of items/balances
+        balance_msg = "💰 Bot Wallet: "
+        for item in wallet.content:
+            balance_msg += f"{item.amount} {item.type}, "
+            
+        await handler.bot.highrise.chat(balance_msg.rstrip(", "))
+        
     except Exception as e:
-        await handler.bot.highrise.chat(f"❌ Error: {e}")
+        print(f"Wallet error: {e}")
+        await handler.bot.highrise.chat("❌ Could not retrieve wallet balance. (API Access Restricted)")

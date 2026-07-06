@@ -1,35 +1,36 @@
-# commands/movement.py
 from highrise import Position
 
 async def execute(handler, user, message):
-    msg = message.strip().lower()
-    parts = msg.split()
-    trigger = parts[0]
-    args = parts[1:]
+    parts = message.split()
+    cmd = parts[0].lstrip("/").lower()
     
-    is_owner = user.username.lower() == handler.bot.config.OWNER_USERNAME.lower()
-    is_vip = user.username.lower() in handler.data.get("vips", []) or is_owner
+    # 1. Sit/Stand (S)
+    if cmd == "s":
+        # Toggle sitting logic: This usually involves sending the user to a chair or position
+        # For simple sit, you can use highrise.sit_user(user.id, "chair_id")
+        await handler.bot.highrise.chat(f"@{user.username}, I am ready to move you!")
 
-    if trigger in ["/s", "/to"] and is_vip:
-        if not args: return
-        target_name = args[0].replace("@", "").lower()
-        room_users = (await handler.bot.highrise.get_room_users()).content
-        target = next((r for r, _ in room_users if r.username.lower() == target_name), None)
+    # 2. Teleport to Coordinates (TO)
+    # Usage: /to 10 0 10 FrontLeft
+    elif cmd == "to":
+        if len(parts) < 5:
+            await handler.bot.highrise.chat("Usage: /to [x] [y] [z] [facing]")
+            return
         
-        if target:
-            if trigger == "/s":
-                my_pos = next((p for r, p in room_users if r.id == user.id), None)
-                if my_pos: await handler.bot.highrise.teleport(target.id, my_pos)
-            else:
-                t_pos = next((p for r, p in room_users if r.id == target.id), None)
-                if t_pos: await handler.bot.highrise.teleport(user.id, t_pos)
-        else:
-            await handler.bot.highrise.chat(f"❌ User @{target_name} not found.")
+        try:
+            x, y, z = float(parts[1]), float(parts[2]), float(parts[3])
+            facing = parts[4] # e.g., FrontLeft, FrontRight, BackLeft, BackRight
+            
+            await handler.bot.highrise.teleport(user.id, Position(x, y, z, facing))
+            await handler.bot.highrise.chat(f"Teleported @{user.username} to {x}, {y}, {z}")
+        except Exception as e:
+            await handler.bot.highrise.chat("Invalid coordinates or direction.")
+            print(f"Movement error: {e}")
 
-    elif trigger == "/cords":
+    # 3. Get Coordinates (CORDS)
+    elif cmd == "cords":
         room_users = await handler.bot.highrise.get_room_users()
-        for room_user, position in room_users.content:
-            if room_user.id == user.id:
-                coords = f"📍 Your Coordinates: X={position.x}, Y={position.y}, Z={position.z}"
-                await handler.bot.highrise.send_whisper(user.id, coords)
+        for u, pos in room_users.content:
+            if u.id == user.id:
+                await handler.bot.highrise.chat(f"@{user.username}: {pos.x}, {pos.y}, {pos.z} - {pos.facing}")
                 return

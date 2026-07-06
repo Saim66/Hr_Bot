@@ -46,7 +46,8 @@ class CommandHandler:
         self.data_dir = "/app/data"
         self.data_file = os.path.join(self.data_dir, "bot_data.json")
         self.loc_file = os.path.join(self.data_dir, "locations.json")
-       
+        self.tasks = {}
+        
         if not os.path.exists(self.data_dir): os.makedirs(self.data_dir)
        
         self.data = self.load_data()
@@ -87,6 +88,21 @@ class CommandHandler:
             except Exception:
                 break
         self.looping_users[target_name] = False
-
+    
+    async def stop_all_emotes(self, username):
+        # Stop any active emote tasks for the given username
+        if username in self.active_tasks:
+            task = self.active_tasks[username]
+            try:
+                task.cancel()
+            except Exception:
+                pass
+            del self.active_tasks[username]
+            # also mark looping flag off
+            if username in self.looping_users:
+                self.looping_users[username] = False
+            return True
+        return False
+    
     async def execute(self, user, message: str) -> None:
         await handle_command(self, user, message)

@@ -1,39 +1,33 @@
-# commands/locations.py
-from highrise import Position
-
 async def execute(handler, user, message):
-    msg = message.strip().lower()
-    parts = msg.split()
-    trigger = parts[0]
-    args = parts[1:]
-    is_owner = user.username.lower() == handler.bot.config.OWNER_USERNAME.lower()
-
-    # Teleport to saved location
-    if trigger in handler.locations:
-        if trigger in handler.data.get("restricted", []) and not is_owner:
-            await handler.bot.highrise.chat(f"🚫 Sorry @{user.username}, that is an Owner-only area!")
+    print(f"DEBUG: Locations command received: {message}")
+    parts = message.split()
+    command = parts[0].lstrip("/")
+    
+    # 1. SET LOCATION
+    if command == "set":
+        if len(parts) < 2:
+            await handler.bot.highrise.chat("Usage: /set [loc_name]")
             return
-        loc = handler.locations[trigger]
-        target_pos = Position(float(loc['x']), float(loc['y']), float(loc['z']), loc['facing'])
-        await handler.bot.highrise.teleport(user.id, target_pos)
-        await handler.bot.highrise.chat(f"🚀 Teleporting to {trigger}!")
+        loc_name = parts[1]
+        # Assuming you have a bot.get_user_position() or similar
+        # For Highrise, you usually need to get the user's position from the room users list
+        users = await handler.bot.highrise.get_room_users()
+        for u, pos in users.content:
+            if u.id == user.id:
+                handler.locations[loc_name] = {"x": pos.x, "y": pos.y, "z": pos.z, "f": pos.facing}
+                handler.save_locations()
+                await handler.bot.highrise.chat(f"Location '{loc_name}' saved!")
+                return
 
-    # Manage locations
-    elif trigger == "/set" and is_owner and args:
-        loc_name = args[0].lower()
-        room_users = (await handler.bot.highrise.get_room_users()).content
-        my_pos = next((p for r, p in room_users if r.id == user.id), None)
-        if my_pos:
-            handler.locations[loc_name] = {"x": my_pos.x, "y": my_pos.y, "z": my_pos.z, "facing": my_pos.facing}
+    # 2. DELETE LOCATION
+    elif command == "dloc":
+        if len(parts) < 2: return
+        if parts[1] in handler.locations:
+            del handler.locations[parts[1]]
             handler.save_locations()
-            await handler.bot.highrise.chat(f"✅ Location '{loc_name}' saved!")
+            await handler.bot.highrise.chat(f"Location '{parts[1]}' deleted.")
 
-    elif trigger in ["/dloc", "/deleteloc"] and is_owner and args:
-        if args[0].lower() in handler.locations:
-            del handler.locations[args[0].lower()]
-            handler.save_locations()
-            await handler.bot.highrise.chat(f"🗑️ Deleted '{args[0]}'.")
-
-    elif trigger == "/clocs" and is_owner:
+    # 3. LIST LOCATIONS
+    elif command == "clocs":
         loc_list = ", ".join(handler.locations.keys())
-        await handler.bot.highrise.chat(f"📂 Saved locations: {loc_list if loc_list else 'None'}")
+        await handler.bot.highrise.chat(f"Locations: {loc_list}")

@@ -1,6 +1,6 @@
-from highrise import Position , user
+from highrise import User, Position # This is correct
 
-async def execute(handler, user, message):
+async def execute(handler, user: User, message: str):
     parts = message.split()
     if len(parts) < 2:
         await handler.bot.highrise.chat("Usage: /s @username")

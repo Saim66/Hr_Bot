@@ -1,39 +1,28 @@
 import asyncio
+from emotes import EMOTE_DICT
 
 async def execute(handler, user, message):
-    # 1. Parse arguments
-    args = message.split()[1:]
-    if not args:
+    parts = message.split()
+    if len(parts) < 2:
         await handler.bot.highrise.chat("Usage: /all [emote_name]")
         return
     
-    emote_name = args[0]
-    
-    # 2. Get all users in the room
-    try:
-        room_users = await handler.bot.highrise.get_room_users()
-    except Exception as e:
-        print(f"Failed to fetch room users: {e}")
+    emote_name = parts[1]
+    emote_id = EMOTE_DICT.get(emote_name)
+
+    if not emote_id:
+        await handler.bot.highrise.chat(f"Emote '{emote_name}' not found.")
         return
 
-    # 3. Iterate and send emote
-    # We use a task group or sequential await with delay to avoid rate limits
-    sent_count = 0
-    for room_user, _ in room_users.content:
+    # Fetch users correctly
+    room_users = await handler.bot.highrise.get_room_users()
+    
+    # room_users.content is a list of (User, Position) tuples
+    for room_user, position in room_users.content:
         try:
-            # Skip the bot itself
-            if room_user.id == handler.bot.bot_id:
-                continue
-                
-            await handler.bot.highrise.send_emote(emote_name, room_user.id)
-            sent_count += 1
-            # Small delay to respect API rate limits and prevent crashing
+            print(f"DEBUG: Sending {emote_id} to {room_user.username}")
+            await handler.bot.highrise.send_emote(emote_id, room_user.id)
+            # Short sleep to prevent rate limiting
             await asyncio.sleep(0.5) 
         except Exception as e:
-            # This skips users who are restricted or cannot emote
-            continue 
-
-    if sent_count > 0:
-        await handler.bot.highrise.chat(f"✨ Emote '{emote_name}' sent to {sent_count} users!")
-    else:
-        await handler.bot.highrise.chat(f"⚠️ Could not send '{emote_name}' to any users.")
+            print(f"Error emoting {room_user.username}: {e}")

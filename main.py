@@ -47,34 +47,32 @@ class Bot(BaseBot):
         # Refresh cache after potential command-based changes
         self.data_cache = self.cmd.load_data()
 
-    async def on_user_join(self, user: User) -> None:
-        try:
-            # Access the handler's data directly
-            handler = self.cmd
-            user_lower = user.username.lower()
+    # Add 'position' as the third argument
+async def on_user_join(self, user: User, position: Position) -> None:
+    # Now the signature matches what the SDK expects
+    try:
+        handler = self.command_handler
+        user_lower = user.username.lower()
+        
+        # 1. Ban/Restricted Check
+        if user_lower in handler.data.get("restricted", []):
+            await self.highrise.teleport(user.id, Position(0, 0, 0, "FrontLeft"))
+            return
 
-            # 1. Ban/Restricted Check
-            # Check if username is in the restricted list
-            if user_lower in handler.data.get("restricted", []):
-                # Teleport to a default position (e.g., exit or jail)
-                await self.highrise.teleport(user.id, Position(0, 0, 0, "FrontLeft"))
-                return
+        # 2. VIP Check
+        if user_lower in handler.data.get("vips", []):
+            await self.highrise.chat(f"Welcome back, VIP @{user.username}!")
+            return
 
-            # 2. VIP Check
-            if user_lower in handler.data.get("vips", []):
-                await self.highrise.chat(f"Welcome back, VIP @{user.username}!")
-                return
-
-            # 3. Custom Welcome
-            # Look for custom welcome message
-            welcomes = handler.data.get("welcomes", {})
-            if user_lower in welcomes:
-                msg = welcomes[user_lower]
-                # Replace placeholder if present
-                final_msg = msg.replace("{username}", user.username)
-                await self.highrise.chat(f"👋 @{user.username}, {final_msg}")
-        except Exception as e:
-            print(f"Join logic error: {e}")
+        # 3. Custom Welcome
+        welcomes = handler.data.get("welcomes", {})
+        if user_lower in welcomes:
+            msg = welcomes[user_lower]
+            final_msg = msg.replace("{username}", user.username)
+            await self.highrise.chat(f"👋 @{user.username}, {final_msg}")
+            
+    except Exception as e:
+        print(f"Join logic error: {e}")
 
     async def on_user_leave(self, user: User) -> None:
         if hasattr(self.cmd, 'looping_users'):

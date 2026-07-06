@@ -1,5 +1,4 @@
-from highrise import User, Position # This is correct
-
+from highrise import Position
 
 async def execute(handler, user, message):
     parts = message.split()
@@ -7,34 +6,40 @@ async def execute(handler, user, message):
         return
     
     cmd = parts[0].lstrip("/").lower()
-    target_name = parts[1].lstrip("@").lower()
+    target_username = parts[1].lstrip("@").lower()
     
-    # Fetch room users
+    # 1. Fetch everyone in the room
     room_users = await handler.bot.highrise.get_room_users()
+    
     target_id = None
     target_pos = None
+    bot_pos = None
     
+    # 2. Find target's data and Bot's position
     for u, pos in room_users.content:
-        if u.username.lower() == target_name:
+        if u.username.lower() == target_username:
             target_id = u.id
             target_pos = pos
-            break
-            
-    # Use the bot's known ID
-    bot_id = handler.bot.user_id 
-    bot_pos = None
-    for u, pos in room_users.content:
-        if u.id == bot_id:
+        if u.id == handler.bot.user_id:
             bot_pos = pos
-            break
+            
+    if not target_id:
+        await handler.bot.highrise.chat(f"@{target_username} not found.")
+        return
 
-    # COMMAND: Summon (/s)
-    if cmd == "s" and target_id and bot_pos:
-        await handler.bot.highrise.teleport(target_id, bot_pos)
-        
-    # COMMAND: Teleport to user (/to)
-    elif cmd == "to" and target_pos:
-        await handler.bot.highrise.teleport(bot_id, target_pos)
+    # 3. COMMAND LOGIC
+    # /s @user -> Teleport TARGET to BOT
+    if cmd == "s":
+        if bot_pos:
+            await handler.bot.highrise.teleport(target_id, bot_pos)
+            await handler.bot.highrise.chat(f"✨ Summoned @{target_username}!")
+            
+    # /to @user -> Teleport BOT to TARGET
+    elif cmd == "to":
+        if target_pos:
+            await handler.bot.highrise.teleport(handler.bot.user_id, target_pos)
+            await handler.bot.highrise.chat(f"🚀 Teleporting to @{target_username}!")
+)
 
 
     # 3. CORDS: Get your own current coordinates

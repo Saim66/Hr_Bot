@@ -16,21 +16,14 @@ async def handle_command(handler_instance, user, message):
     
     trigger = parts[0].lstrip("/") 
     
-    # Mapping table: trigger -> filename in commands folder
     mapping = {
-        "help": "help",
-        "welcome": "welcome",
-        "vip": "vip",
+        "help": "help", "welcome": "welcome", "vip": "vip",
         "s": "movement", "to": "movement", "cords": "movement",
         "kick": "moderation", "ban": "moderation", "unban": "moderation",
         "set": "locations", "dloc": "locations", "deleteloc": "locations", "clocs": "locations",
-        "all": "emote_all",
-        "wallet": "wallet",
-        "tip": "tip",
-        "stop": "loops"
+        "all": "emote_all", "wallet": "wallet", "tip": "tip", "stop": "loops"
     }
 
-    # Identify module
     if trigger in handler_instance.locations:
         module_name = "locations"
     elif trigger in mapping:
@@ -38,34 +31,21 @@ async def handle_command(handler_instance, user, message):
     elif trigger in EMOTE_DICT:
         module_name = "loops"
     else:
-        # Command not recognized
         return
 
-    # Load and execute
     try:
-        # Import the file from the 'commands' folder
         module = importlib.import_module(f"commands.{module_name}")
-        # Execute the 'execute' function inside that file
         await module.execute(handler_instance, user, message)
-        
-    except ModuleNotFoundError:
-        await handler_instance.bot.highrise.chat(f"❌ Error: 'commands/{module_name}.py' file missing.")
-    except AttributeError:
-        await handler_instance.bot.highrise.chat(f"❌ Error: 'commands/{module_name}.py' is missing an 'execute' function.")
     except Exception as e:
         logger.error(f"Error executing {module_name}: {e}")
-        await handler_instance.bot.highrise.chat(f"❌ Execution error: {str(e)[:50]}")
+        await handler_instance.bot.highrise.chat(f"❌ Error: {str(e)[:50]}")
 
 class CommandHandler:
     def __init__(self, bot):
         self.bot = bot
-        
-        # Room-specific data storage
         room_id = os.getenv("ROOM_ID", "default_room")
         self.data_dir = "/app/data"
-        
-        if not os.path.exists(self.data_dir): 
-            os.makedirs(self.data_dir)
+        if not os.path.exists(self.data_dir): os.makedirs(self.data_dir)
             
         self.data_file = os.path.join(self.data_dir, f"bot_data_{room_id}.json")
         self.loc_file = os.path.join(self.data_dir, f"locations_{room_id}.json")
@@ -78,26 +58,36 @@ class CommandHandler:
     def load_data(self):
         if os.path.exists(self.data_file):
             try:
-                with open(self.data_file, "r") as f:
-                    return json.load(f)
+                with open(self.data_file, "r") as f: return json.load(f)
             except: pass
         return {"vips": [], "restricted": [], "welcomes": {}}
 
     def save_data(self):
-        with open(self.data_file, "w") as f:
-            json.dump(self.data, f, indent=4)
+        with open(self.data_file, "w") as f: json.dump(self.data, f, indent=4)
 
     def load_locations(self):
         if os.path.exists(self.loc_file):
             try:
-                with open(self.loc_file, "r") as f:
-                    return json.load(f)
+                with open(self.loc_file, "r") as f: return json.load(f)
             except: pass
         return {}
 
     def save_locations(self):
-        with open(self.loc_file, "w") as f:
-            json.dump(self.locations, f, indent=4)
+        with open(self.loc_file, "w") as f: json.dump(self.locations, f, indent=4)
+
+    # --- ADDED MISSING FUNCTIONS ---
+    async def loop_emote(self, emote_id, target_id, target_name):
+        self.looping_users[target_name] = True
+        while self.looping_users.get(target_name, False):
+            try:
+                await self.bot.highrise.send_emote(emote_id, target_id)
+                await asyncio.sleep(6)
+            except Exception: break
+        self.looping_users[target_name] = False
+    
+    async def stop_all_emotes(self, username):
+        self.looping_users[username] = False
+        return True
     
     async def execute(self, user, message: str) -> None:
         await handle_command(self, user, message)

@@ -3,7 +3,6 @@ import json
 import os
 import importlib
 from emotes import EMOTE_DICT
-import config
 
 async def handle_command(handler_instance, user, message):
     msg = message.strip().lower()
@@ -18,7 +17,7 @@ async def handle_command(handler_instance, user, message):
         "welcome": "welcome",
         "vip": "vip",
         "s": "movement", "to": "movement", "cords": "movement",
-        "kick": "moderation", "ban": "moderation",
+        "kick": "moderation", "ban": "moderation", "unban": "moderation",
         "set": "locations", "dloc": "locations", "deleteloc": "locations", "clocs": "locations",
         "all": "emote_all",
         "wallet": "wallet",
@@ -26,12 +25,20 @@ async def handle_command(handler_instance, user, message):
         "stop": "loops", "0": "loops"
     }
 
-    # Determine which module to load
-    module_name = mapping.get(trigger)
+    # 1. DYNAMIC LOCATION TELEPORT: Check if the command is a saved location
+    if trigger in handler_instance.locations:
+        module_name = "locations"
     
-    # If trigger is in EMOTE_DICT but not in mapping, use 'loops'
-    if not module_name and trigger in EMOTE_DICT:
+    # 2. STANDARD COMMANDS
+    elif trigger in mapping:
+        module_name = mapping[trigger]
+    
+    # 3. EMOTES
+    elif trigger in EMOTE_DICT:
         module_name = "loops"
+    
+    else:
+        module_name = None
 
     if module_name:
         try:
@@ -46,10 +53,9 @@ class CommandHandler:
         self.data_dir = "/app/data"
         self.data_file = os.path.join(self.data_dir, "bot_data.json")
         self.loc_file = os.path.join(self.data_dir, "locations.json")
-        self.tasks = {}
-        
+
         if not os.path.exists(self.data_dir): os.makedirs(self.data_dir)
-       
+        
         self.data = self.load_data()
         self.locations = self.load_locations()
         self.looping_users = {}
@@ -90,7 +96,7 @@ class CommandHandler:
         self.looping_users[target_name] = False
     
     async def stop_all_emotes(self, username):
-        # Stop any active emote tasks for the given username
+        # Stop any active tasks for the given username
         if username in self.active_tasks:
             task = self.active_tasks[username]
             try:
@@ -98,11 +104,10 @@ class CommandHandler:
             except Exception:
                 pass
             del self.active_tasks[username]
-            # also mark looping flag off
-            if username in self.looping_users:
-                self.looping_users[username] = False
-            return True
-        return False
+        
+        # Stop loop flag
+        self.looping_users[username] = False
+        return True
     
     async def execute(self, user, message: str) -> None:
         await handle_command(self, user, message)

@@ -4,58 +4,23 @@ import os
 import importlib
 from emotes import EMOTE_DICT
 
-async def handle_command(handler_instance, user, message):
-    msg = message.strip().lower()
-    parts = msg.split()
-    if not parts: return
-    
-    # Remove "/" so "/help" becomes "help"
-    trigger = parts[0].lstrip("/") 
-    
-    mapping = {
-        "help": "help",
-        "welcome": "welcome",
-        "vip": "vip",
-        "s": "movement", "to": "movement", "cords": "movement",
-        "kick": "moderation", "ban": "moderation", "unban": "moderation",
-        "set": "locations", "dloc": "locations", "deleteloc": "locations", "clocs": "locations",
-        "all": "emote_all",
-        "wallet": "wallet",
-        "tip": "tip",
-        "welcome": "welcome",
-        "stop": "loops", "0": "loops"
-    }
-
-    # 1. DYNAMIC LOCATION TELEPORT: Check if the command is a saved location
-    if trigger in handler_instance.locations:
-        module_name = "locations"
-    
-    # 2. STANDARD COMMANDS
-    elif trigger in mapping:
-        module_name = mapping[trigger]
-    
-    # 3. EMOTES
-    elif trigger in EMOTE_DICT:
-        module_name = "loops"
-    
-    else:
-        module_name = None
-
-    if module_name:
-        try:
-            module = importlib.import_module(f"commands.{module_name}")
-            await module.execute(handler_instance, user, message)
-        except Exception as e:
-            print(f"Error executing {module_name}: {e}")
+# ... (keep handle_command exactly as you have it) ...
 
 class CommandHandler:
     def __init__(self, bot):
         self.bot = bot
+        
+        # FIX: Get Room ID from env variable to make data files unique per bot
+        room_id = os.getenv("ROOM_ID", "default_room")
+        
+        # Use a folder that persists (Railway Volume)
         self.data_dir = "/app/data"
-        self.data_file = os.path.join(self.data_dir, "bot_data.json")
-        self.loc_file = os.path.join(self.data_dir, "locations.json")
-
         if not os.path.exists(self.data_dir): os.makedirs(self.data_dir)
+        
+        # Unique filenames per bot/room
+        self.data_file = os.path.join(self.data_dir, f"bot_data_{room_id}.json")
+        self.loc_file = os.path.join(self.data_dir, f"locations_{room_id}.json")
+
         self.tasks = {}
         self.data = self.load_data()
         self.locations = self.load_locations()
@@ -85,6 +50,9 @@ class CommandHandler:
     def save_locations(self):
         with open(self.loc_file, "w") as f:
             json.dump(self.locations, f, indent=4)
+            
+    # ... (rest of your methods remain the same) ...
+
 
     async def loop_emote(self, emote_id, target_id, target_name):
         self.looping_users[target_name] = True

@@ -5,7 +5,8 @@ import importlib
 import logging
 from emotes import EMOTE_DICT
 
-# Configure logging for debugging
+# Configure logging
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 async def handle_command(handler_instance, user, message):
@@ -15,7 +16,7 @@ async def handle_command(handler_instance, user, message):
     
     trigger = parts[0].lstrip("/") 
     
-    # Mapping table for modules
+    # Mapping table: trigger -> filename in commands folder
     mapping = {
         "help": "help",
         "welcome": "welcome",
@@ -29,7 +30,7 @@ async def handle_command(handler_instance, user, message):
         "stop": "loops"
     }
 
-    # Determine which module to load
+    # Identify module
     if trigger in handler_instance.locations:
         module_name = "locations"
     elif trigger in mapping:
@@ -37,21 +38,29 @@ async def handle_command(handler_instance, user, message):
     elif trigger in EMOTE_DICT:
         module_name = "loops"
     else:
-        module_name = None
+        # Command not recognized
+        return
 
-    if module_name:
-        try:
-            module = importlib.import_module(f"commands.{module_name}")
-            # Ensure the module has the execute function
-            await module.execute(handler_instance, user, message)
-        except Exception as e:
-            logger.error(f"Error executing {module_name}: {e}")
-            await handler_instance.bot.highrise.chat(f"❌ Command failed: {e}")
+    # Load and execute
+    try:
+        # Import the file from the 'commands' folder
+        module = importlib.import_module(f"commands.{module_name}")
+        # Execute the 'execute' function inside that file
+        await module.execute(handler_instance, user, message)
+        
+    except ModuleNotFoundError:
+        await handler_instance.bot.highrise.chat(f"❌ Error: 'commands/{module_name}.py' file missing.")
+    except AttributeError:
+        await handler_instance.bot.highrise.chat(f"❌ Error: 'commands/{module_name}.py' is missing an 'execute' function.")
+    except Exception as e:
+        logger.error(f"Error executing {module_name}: {e}")
+        await handler_instance.bot.highrise.chat(f"❌ Execution error: {str(e)[:50]}")
 
 class CommandHandler:
     def __init__(self, bot):
         self.bot = bot
-        # Use Room ID to create unique data files for multiple bots
+        
+        # Room-specific data storage
         room_id = os.getenv("ROOM_ID", "default_room")
         self.data_dir = "/app/data"
         

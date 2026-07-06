@@ -3,7 +3,7 @@ import asyncio
 import logging
 from highrise import Position, User, CurrencyItem, Item  #
 from highrise import BaseBot, Position, User
-from commands import CommandHandler
+from bot_commands import CommandHandler
 from typing import Union
 from emotes import EMOTE_LIST
 

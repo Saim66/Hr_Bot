@@ -4,34 +4,36 @@ from emotes import EMOTE_DICT
 async def execute(handler, user, message):
     parts = message.split()
     
-    # 1. Handle Stop logic
-    if parts[0].lower() in ["/stop", "0"]:
-        if handler.all_loop_task:
+    # 1. STOP COMMAND
+    if len(parts) >= 1 and parts[0].lower() in ["/stop", "0"]:
+        if hasattr(handler, 'all_loop_task') and handler.all_loop_task:
             handler.all_loop_task.cancel()
             handler.all_loop_task = None
             await handler.bot.highrise.chat("🛑 All emotes stopped.")
         return
 
-    # 2. Start logic
+    # 2. START COMMAND
     if len(parts) < 2:
         await handler.bot.highrise.chat("Usage: /all [emote_name]")
         return
     
     emote_name = parts[1].lower()
-    # Handle both 'emote-name' and 'name'
     emote_id = EMOTE_DICT.get(emote_name) or EMOTE_DICT.get(f"emote-{emote_name}")
     
     if not emote_id:
         await handler.bot.highrise.chat("❌ Emote not found.")
         return
 
-    # CRITICAL: Cancel the existing global task before starting a new one
-    if handler.all_loop_task:
+    # PREVENT CONFLICT: Cancel and Wait
+    if hasattr(handler, 'all_loop_task') and handler.all_loop_task:
         handler.all_loop_task.cancel()
-        # Optional: give it a tiny moment to clean up
-        await asyncio.sleep(0.1)
+        try:
+            # Wait a brief moment to ensure the old loop actually exits
+            await asyncio.wait_for(handler.all_loop_task, timeout=1.0)
+        except (asyncio.CancelledError, asyncio.TimeoutError):
+            pass
 
-    await handler.bot.highrise.chat(f"✨ Starting '{emote_name}' loop for everyone!")
+    await handler.bot.highrise.chat(f"✨ Everyone is now doing: {emote_name}")
 
     async def emote_loop():
         try:
@@ -42,9 +44,10 @@ async def execute(handler, user, message):
                         await handler.bot.highrise.send_emote(emote_id, room_user.id)
                     except Exception:
                         continue
+                # Reduced sleep to keep the loop tight
                 await asyncio.sleep(6)
         except asyncio.CancelledError:
-            pass
+            raise # Important for clean cancellation
 
-    # Store the task in the specific variable we initialized in CommandHandler
+    # Start new task
     handler.all_loop_task = asyncio.create_task(emote_loop())

@@ -1,33 +1,47 @@
-# commands/loops.py
 import asyncio
 from emotes import EMOTE_DICT
 
 async def execute(handler, user, message):
     msg = message.strip().lower()
-    trigger = msg.split()[0]
+    parts = msg.split()
+    trigger = parts[0]
 
+    # 1. HANDLE EMOTE LOOP
     if trigger in EMOTE_DICT:
         actual_emote = EMOTE_DICT[trigger]
-        args = msg.split()[1:]
-        target_name = args[0].replace("@", "").lower() if args else user.username.lower()
+        target_name = parts[1].replace("@", "").lower() if len(parts) > 1 else user.username.lower()
         
         room_users = (await handler.bot.highrise.get_room_users()).content
         target = next((r for r, _ in room_users if r.username.lower() == target_name), None)
         
         if target:
-            if target_name in handler.active_tasks:
-                handler.looping_users[target_name] = False
-                handler.active_tasks[target_name].cancel()
-                await asyncio.sleep(0.5)
+            # Stop existing loops for this pair to prevent overlap
+            if user.username.lower() in handler.active_tasks:
+                handler.looping_users[user.username.lower()] = False
+                handler.active_tasks[user.username.lower()].cancel()
             
-            handler.looping_users[target_name] = True
-            task = asyncio.create_task(handler.loop_emote(actual_emote, target.id, target_name))
-            handler.active_tasks[target_name] = task
-            await handler.bot.highrise.chat(f"✨ Looping {trigger} for @{target_name}!")
+            # Start loop for both
+            handler.looping_users[user.username.lower()] = True
             
+            # Create a combined task that loops both users
+            async def dual_loop():
+                try:
+                    while handler.looping_users.get(user.username.lower(), False):
+                        # Send for both
+                        await handler.bot.highrise.send_emote(actual_emote, user.id)
+                        await handler.bot.highrise.send_emote(actual_emote, target.id)
+                        await asyncio.sleep(6)
+                except asyncio.CancelledError:
+                    pass
+
+            handler.active_tasks[user.username.lower()] = asyncio.create_task(dual_loop())
+            await handler.bot.highrise.chat(f"✨ Looping {trigger} for you and @{target.username}!")
+            
+    # 2. HANDLE STOP (Instant Stop)
     elif trigger in ["stop", "0"]:
-        name_to_stop = user.username.lower()
-        if name_to_stop in handler.active_tasks:
-            handler.looping_users[name_to_stop] = False
-            handler.active_tasks[name_to_stop].cancel()
-            await handler.bot.highrise.chat(f"⏹️ Stopped your emote loop.")
+        name = user.username.lower()
+        if name in handler.active_tasks:
+            handler.looping_users[name] = False
+            handler.active_tasks[name].cancel()
+            del handler.active_tasks[name]
+            await handler.bot.highrise.chat(f"⏹️ Stopped your emote loops.")

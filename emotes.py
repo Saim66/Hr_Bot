@@ -239,7 +239,7 @@ EMOTE_DICT= {
     "uww": "idle-uwu", 
     "zenmode" : "emote-meditate-idle",
     "freshstep": "dance-freshprince",
-    "cloudsit": "bag_n-cloudsit",
+    "cloudsit": "bag-n_cloudsit",
     "stunt": "emote-outfit3",
     "diva": "emote-threadexchange-posing",
     "stunt2": "emote-outfit2"

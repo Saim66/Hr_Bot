@@ -1,15 +1,5 @@
 async def execute(handler, user, message):
-    # This checks if it's a manual command ("/welcome") or an internal trigger
-    parts = message.split()
-    cmd = parts[0].lstrip("/").lower()
-    
-    # Logic for manual "/welcome" command
-    if cmd == "welcome":
-        await handler.bot.highrise.chat("✅ Welcome system is active!")
-        return
-
-    # Logic for automatic join event (triggered by main.py)
-    # The message is passed as "join_event" from the trigger below
+    # If the message is exactly "join_event", run the welcome logic
     if message == "join_event":
         try:
             # Check if user is VIP
@@ -19,5 +9,13 @@ async def execute(handler, user, message):
                 await handler.bot.highrise.chat(f"👑 Welcome back, VIP @{user.username}!")
             else:
                 await handler.bot.highrise.chat(f"👋 Hello @{user.username}, welcome to the room!")
+            return # Exit after finishing join event
         except Exception as e:
             print(f"Error in welcome trigger: {e}")
+            return
+
+    # Otherwise, handle as manual command
+    parts = message.split()
+    cmd = parts[0].lstrip("/").lower()
+    if cmd == "welcome":
+        await handler.bot.highrise.chat("✅ Welcome system is active!")

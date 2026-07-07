@@ -15,7 +15,7 @@ async def handle_command(handler_instance, user, message):
     parts = msg_lower.split()
     if not parts: return
     
-    # 1. CHECK FOR LOCATION FIRST (No prefix needed)
+    # 1. CHECK FOR LOCATION FIRST
     if parts[0] in handler_instance.locations:
         module_name = "locations"
     # 2. CHECK FOR PREFIX COMMANDS
@@ -26,7 +26,7 @@ async def handle_command(handler_instance, user, message):
             "s": "movement", "to": "movement", "cords": "movement",
             "kick": "moderation", "ban": "moderation", "unban": "moderation",
             "set": "locations", "dloc": "locations", "deleteloc": "locations", "clocs": "locations",
-            "all": "emote_all", "wallet": "wallet", "tip": "tip", "stop": "loops"
+            "all": "emote_all", "wallet": "wallet", "tip": "tip", "stop": "loops", "0": "loops"
         }
         
         if trigger in mapping:
@@ -46,7 +46,7 @@ async def handle_command(handler_instance, user, message):
 class CommandHandler:
     def __init__(self, bot):
         self.bot = bot
-        self.all_loop_task = None
+        self.all_loop_task = None # Global task for /all
         room_id = os.getenv("ROOM_ID", "default_room")
         self.data_dir = "/app/data"
         if not os.path.exists(self.data_dir): os.makedirs(self.data_dir)
@@ -58,17 +58,6 @@ class CommandHandler:
         self.locations = self.load_locations()
         self.looping_users = {}
         self.active_tasks = {}
-        
-        # --- DEBUGGING: Logs once on startup ---
-        if os.path.exists(self.loc_file):
-            logger.info(f"✅ Data file found at: {self.loc_file}")
-            try:
-                with open(self.loc_file, "r") as f:
-                    logger.info(f"📂 Loaded Locations: {f.read()}")
-            except Exception as e:
-                logger.error(f"Could not read file: {e}")
-        else:
-            logger.info(f"⚠️ Data file not found at: {self.loc_file} (Will be created on first /set)")
 
     def load_data(self):
         if os.path.exists(self.data_file):
@@ -100,7 +89,13 @@ class CommandHandler:
         self.looping_users[target_name] = False
     
     async def stop_all_emotes(self, username):
+        # Stop individual loop
         self.looping_users[username] = False
+        
+        # Stop global /all loop
+        if self.all_loop_task:
+            self.all_loop_task.cancel()
+            self.all_loop_task = None
         return True
     
     async def execute(self, user, message: str) -> None:

@@ -27,6 +27,7 @@ async def handle_command(handler_instance, user, message):
             "kick": "moderation", "ban": "moderation", "unban": "moderation",
             "set": "locations", "dloc": "locations", "deleteloc": "locations", "clocs": "locations",
             "all": "emote_all", "wallet": "wallet", "tip": "tip", "stop": "loops"
+"all": "emote_all",
         }
         
         if trigger in mapping:

@@ -4,6 +4,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 async def run_all_emote(handler, emote_id):
+    """Loops the specific emote for all users until cancelled."""
     try:
         while True:
             room_users = await handler.bot.highrise.get_room_users()
@@ -11,8 +12,8 @@ async def run_all_emote(handler, emote_id):
                 try:
                     await handler.bot.highrise.send_emote(emote_id, user.id)
                 except Exception as e:
-                    # This will print the EXACT reason to your Railway Logs
-                    logger.error(f"DEBUG: Failed to send {emote_id} to {user.username}. Error: {e}")
+                    # Logs if the bot lacks permissions (Forbidden) or ID is invalid (Bad Request)
+                    logger.error(f"Failed to emote {user.username}: {e}")
             await asyncio.sleep(6)
     except asyncio.CancelledError:
         pass
@@ -20,26 +21,26 @@ async def run_all_emote(handler, emote_id):
 async def execute(handler, user, message):
     parts = message.split()
     
-    # 1. Handle Stop Commands
-    if len(parts) == 1 and (parts[0].lower() in ["/stop", "0"]):
-        if hasattr(handler, 'all_loop_task') and handler.all_loop_task:
+    # Check for Stop command
+    if len(parts) >= 1 and parts[0].lower() in ["/stop", "0"]:
+        if handler.all_loop_task:
             handler.all_loop_task.cancel()
             handler.all_loop_task = None
-            await handler.bot.highrise.chat("🛑 Stopped.")
+            await handler.bot.highrise.chat("🛑 All emotes stopped.")
         return
 
-    # 2. Handle Start Command
     if len(parts) < 2:
+        await handler.bot.highrise.chat("Usage: /all [emote_name] or /stop")
         return
     
-    # This logic forces the emote- prefix. 
-    # If you type 'dance', it becomes 'emote-dance'
+    # Process emote name
     raw_name = parts[1].lower()
     emote_id = f"emote-{raw_name}" if not raw_name.startswith("emote-") else raw_name
     
-    # Start the loop
-    if hasattr(handler, 'all_loop_task') and handler.all_loop_task:
+    # Cancel previous emote task if it exists (Ensures new emote overrides old)
+    if handler.all_loop_task:
         handler.all_loop_task.cancel()
     
+    # Start new background task
     handler.all_loop_task = asyncio.create_task(run_all_emote(handler, emote_id))
-    await handler.bot.highrise.chat(f"📢 Everyone is now doing: {emote_id}")
+    await handler.bot.highrise.chat(f"📢 Everyone is now doing: {raw_name}")

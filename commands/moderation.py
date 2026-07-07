@@ -1,28 +1,19 @@
 import asyncio
 
-async def execute(handler, user, message):
-    parts = message.split()
-    if len(parts) < 2: return
-    
-    cmd = parts[0].lstrip("/").lower()
-    target_name = parts[1].lstrip("@").lower()
-    
-    room_users = await handler.bot.highrise.get_room_users()
-    target_id = None
-    for u, pos in room_users.content:
-        if u.username.lower() == target_name:
-            target_id = u.id
-            break
+# Use this in your moderation.py or wherever your kick/ban logic lives
+async def moderate_user(bot, target_id, action):
+    """
+    action: "kick", "ban", or "unban"
+    """
+    try:
+        if action == "kick":
+            await bot.highrise.moderate_room(target_id, "kick")
+        elif action == "ban":
+            # For bans, you can include a duration in seconds (e.g., 3600 for 1 hour)
+            await bot.highrise.moderate_room(target_id, "ban", 3600)
+        elif action == "unban":
+            await bot.highrise.moderate_room(target_id, "unban")
             
-    if not target_id:
-        await handler.bot.highrise.chat("User not found.")
-        return
-
-    # Use handler.bot.user_id to check if bot is trying to ban itself
-    if cmd == "kick":
-        await handler.bot.highrise.kick_user(target_id)
-    elif cmd == "ban":
-        await handler.bot.highrise.ban_user(target_id)
-    elif cmd == "unban":
-        await handler.bot.highrise.unban_user(target_id)
-      
+        await bot.highrise.chat(f"Successfully performed {action} on user.")
+    except Exception as e:
+        await bot.highrise.chat(f"Failed to moderate: {e}")

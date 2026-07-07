@@ -1,5 +1,6 @@
 import asyncio
 from emotes import EMOTE_DICT
+import asyncio
 
 async def execute(handler, user, message):
     parts = message.split()
@@ -7,35 +8,30 @@ async def execute(handler, user, message):
         await handler.bot.highrise.chat("Usage: /all [emote_name]")
         return
     
-    emote_name = parts[1]
-    emote_id = EMOTE_DICT.get(emote_name)
-    if not emote_id:
-        await handler.bot.highrise.chat("Emote not found.")
-        return
+    emote_name = parts[1].lower()
+    
+    # 1. Stop any existing global loop
+    if handler.all_loop_task:
+        handler.all_loop_task.cancel()
+        handler.all_loop_task = None
+    
+    # 2. Start the new loop as a background task
+    handler.all_loop_task = asyncio.create_task(run_all_emote(handler, emote_name))
+    await handler.bot.highrise.chat(f"📢 Everyone is now doing: {emote_name}")
 
-    # Cancel existing task if running
-    await handler.stop_all_emotes("all_command")
+async def run_all_emote(handler, emote_name):
+    try:
+        while True:
+            room_users = await handler.bot.highrise.get_room_users()
+            for user, position in room_users.content:
+                try:
+                    await handler.bot.highrise.send_emote(emote_name, user.id)
+                except:
+                    continue
+            await asyncio.sleep(6) # Wait before repeating the cycle
+    except asyncio.CancelledError:
+        pass # Task was cancelled by a new request
 
-    # Send confirmation message to the room
-    await handler.bot.highrise.chat(f"✨ Starting '{emote_name}' loop for everyone!")
-
-    async def emote_loop():
-        try:
-            while True:
-                # Check connection before API calls to prevent crashes
-                if not handler.bot.highrise.ws or handler.bot.highrise.ws.closed:
-                    break
-                
-                room_users = await handler.bot.highrise.get_room_users()
-                for room_user, _ in room_users.content:
-                    try:
-                        await handler.bot.highrise.send_emote(emote_id, room_user.id)
-                    except Exception:
-                        continue # Skip users where emote fails
-                
-                await asyncio.sleep(6)
-        except asyncio.CancelledError:
-            pass
         except Exception as e:
             print(f"Loop error: {e}")
 

@@ -15,12 +15,13 @@ async def handle_command(handler_instance, user, message):
     parts = msg_lower.split()
     if not parts: return
     
-    # 1. CHECK FOR LOCATION FIRST
+    # 1. CHECK FOR LOCATION FIRST (No prefix needed)
     if parts[0] in handler_instance.locations:
         module_name = "locations"
     # 2. CHECK FOR PREFIX COMMANDS
     else:
         trigger = parts[0].lstrip("/") 
+        # Added "all" to mapping for the new command
         mapping = {
             "help": "help", "welcome": "welcome", "vip": "vip",
             "s": "movement", "to": "movement", "cords": "movement",
@@ -46,7 +47,7 @@ async def handle_command(handler_instance, user, message):
 class CommandHandler:
     def __init__(self, bot):
         self.bot = bot
-        self.all_loop_task = None # Global task for /all
+        self.all_loop_task = None # Global task for /all command
         room_id = os.getenv("ROOM_ID", "default_room")
         self.data_dir = "/app/data"
         if not os.path.exists(self.data_dir): os.makedirs(self.data_dir)
@@ -89,10 +90,10 @@ class CommandHandler:
         self.looping_users[target_name] = False
     
     async def stop_all_emotes(self, username):
-        # Stop individual loop
+        # Stop individual loop for this user
         self.looping_users[username] = False
         
-        # Stop global /all loop
+        # Stop global /all loop if it exists
         if self.all_loop_task:
             self.all_loop_task.cancel()
             self.all_loop_task = None

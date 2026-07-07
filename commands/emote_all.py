@@ -3,41 +3,48 @@ from emotes import EMOTE_DICT
 
 async def execute(handler, user, message):
     parts = message.split()
+    
+    # 1. Handle Stop logic
+    if parts[0].lower() in ["/stop", "0"]:
+        if handler.all_loop_task:
+            handler.all_loop_task.cancel()
+            handler.all_loop_task = None
+            await handler.bot.highrise.chat("🛑 All emotes stopped.")
+        return
+
+    # 2. Start logic
     if len(parts) < 2:
         await handler.bot.highrise.chat("Usage: /all [emote_name]")
         return
     
-    emote_name = parts[1]
-    emote_id = EMOTE_DICT.get(emote_name)
+    emote_name = parts[1].lower()
+    # Handle both 'emote-name' and 'name'
+    emote_id = EMOTE_DICT.get(emote_name) or EMOTE_DICT.get(f"emote-{emote_name}")
+    
     if not emote_id:
-        await handler.bot.highrise.chat("Emote not found.")
+        await handler.bot.highrise.chat("❌ Emote not found.")
         return
 
-    # Cancel existing task if running
-    await handler.stop_all_emotes("all_command")
+    # CRITICAL: Cancel the existing global task before starting a new one
+    if handler.all_loop_task:
+        handler.all_loop_task.cancel()
+        # Optional: give it a tiny moment to clean up
+        await asyncio.sleep(0.1)
 
-    # Send confirmation message to the room
     await handler.bot.highrise.chat(f"✨ Starting '{emote_name}' loop for everyone!")
 
     async def emote_loop():
         try:
             while True:
-                # Check connection before API calls to prevent crashes
-                if not handler.bot.highrise.ws or handler.bot.highrise.ws.closed:
-                    break
-                
                 room_users = await handler.bot.highrise.get_room_users()
                 for room_user, _ in room_users.content:
                     try:
                         await handler.bot.highrise.send_emote(emote_id, room_user.id)
                     except Exception:
-                        continue # Skip users where emote fails
-                
+                        continue
                 await asyncio.sleep(6)
         except asyncio.CancelledError:
             pass
-        except Exception as e:
-            print(f"Loop error: {e}")
 
-    # Start the task and store it in handler.active_tasks
-    handler.active_tasks["all_command"] = asyncio.create_task(emote_loop())
+    # Store the task in the specific variable we initialized in CommandHandler
+    handler.all_loop_task = asyncio.create_task(emote_loop())

@@ -15,7 +15,7 @@ async def handle_command(handler_instance, user, message):
     parts = msg_lower.split()
     if not parts: return
     
-    # 1. CHECK FOR LOCATION FIRST (No prefix needed)
+    # 1. CHECK FOR LOCATION FIRST
     if parts[0] in handler_instance.locations:
         module_name = "locations"
     # 2. CHECK FOR PREFIX COMMANDS
@@ -25,7 +25,9 @@ async def handle_command(handler_instance, user, message):
             "help": "help", "welcome": "welcome", "vip": "vip",
             "s": "movement", "to": "movement", "cords": "movement",
             "kick": "moderation", "ban": "moderation", "unban": "moderation",
-            "set": "locations", "dloc": "locations", "deleteloc": "locations", "clocs": "locations", "wallet": "wallet", "tip": "tip", "stop": "loops", "0": "loops"
+            "set": "locations", "dloc": "locations", "deleteloc": "locations", 
+            "clocs": "locations", "wallet": "wallet", "tip": "tip", 
+            "stop": "loops", "0": "loops", "all": "loops" # Added 'all' here
         }
         
         if trigger in mapping:
@@ -40,12 +42,14 @@ async def handle_command(handler_instance, user, message):
         await module.execute(handler_instance, user, message)
     except Exception as e:
         logger.error(f"Error executing {module_name}: {e}")
-        await handler_instance.bot.highrise.chat(f"❌ Error: {str(e)[:50]}")
+        # Only chat if the connection is active to avoid crashes
+        if handler_instance.bot.highrise.ws and not handler_instance.bot.highrise.ws.closed:
+            await handler_instance.bot.highrise.chat(f"❌ Error: {str(e)[:50]}")
 
 class CommandHandler:
     def __init__(self, bot):
         self.bot = bot
-        self.all_loop_task = None # Global task for /all command
+        self.all_loop_task = None 
         room_id = os.getenv("ROOM_ID", "default_room")
         self.data_dir = "/app/data"
         if not os.path.exists(self.data_dir): os.makedirs(self.data_dir)
@@ -55,6 +59,8 @@ class CommandHandler:
 
         self.data = self.load_data()
         self.locations = self.load_locations()
+        
+        # Unified tracking
         self.looping_users = {}
         self.active_tasks = {}
 
@@ -77,31 +83,6 @@ class CommandHandler:
 
     def save_locations(self):
         with open(self.loc_file, "w") as f: json.dump(self.locations, f, indent=4)
-
-    async def loop_emote(self, emote_id, target_id, target_name):
-        self.looping_users[target_name] = True
-        while self.looping_users.get(target_name, False):
-            try:
-                await self.bot.highrise.send_emote(emote_id, target_id)
-                await asyncio.sleep(6)
-            except Exception: break
-        self.looping_users[target_name] = False
-    
-    async def stop_all_emotes(self, username):
-        """Stops both individual loops and the global /all loop."""
-        # Stop individual user loop
-        if username in self.looping_users:
-            self.looping_users[username] = False
-        
-        # Stop global /all loop cleanly
-        if self.all_loop_task:
-            self.all_loop_task.cancel()
-            try:
-                await self.all_loop_task
-            except asyncio.CancelledError:
-                pass
-            self.all_loop_task = None
-        return True
     
     async def execute(self, user, message: str) -> None:
         await handle_command(self, user, message)

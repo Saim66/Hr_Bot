@@ -10,29 +10,35 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 async def handle_command(handler_instance, user, message):
-    msg = message.strip().lower()
-    parts = msg.split()
+    msg = message.strip()
+    msg_lower = msg.lower()
+    parts = msg_lower.split()
     if not parts: return
     
-    trigger = parts[0].lstrip("/") 
-    
-    mapping = {
-        "help": "help", "welcome": "welcome", "vip": "vip",
-        "s": "movement", "to": "movement", "cords": "movement",
-        "kick": "moderation", "ban": "moderation", "unban": "moderation",
-        "set": "locations", "dloc": "locations", "deleteloc": "locations", "clocs": "locations",
-        "all": "emote_all", "wallet": "wallet", "tip": "tip", "stop": "loops"
-    }
-
-    if trigger in handler_instance.locations:
+    # 1. CHECK FOR LOCATION FIRST (No prefix needed)
+    # Check if the raw word (e.g., 'stage') exists in saved locations
+    if parts[0] in handler_instance.locations:
         module_name = "locations"
-    elif trigger in mapping:
-        module_name = mapping[trigger]
-    elif trigger in EMOTE_DICT:
-        module_name = "loops"
+    
+    # 2. CHECK FOR PREFIX COMMANDS
     else:
-        return
+        trigger = parts[0].lstrip("/") 
+        mapping = {
+            "help": "help", "welcome": "welcome", "vip": "vip",
+            "s": "movement", "to": "movement", "cords": "movement",
+            "kick": "moderation", "ban": "moderation", "unban": "moderation",
+            "set": "locations", "dloc": "locations", "deleteloc": "locations", "clocs": "locations",
+            "all": "emote_all", "wallet": "wallet", "tip": "tip", "stop": "loops"
+        }
+        
+        if trigger in mapping:
+            module_name = mapping[trigger]
+        elif trigger in EMOTE_DICT:
+            module_name = "loops"
+        else:
+            return
 
+    # Execute the identified module
     try:
         module = importlib.import_module(f"commands.{module_name}")
         await module.execute(handler_instance, user, message)
@@ -75,7 +81,6 @@ class CommandHandler:
     def save_locations(self):
         with open(self.loc_file, "w") as f: json.dump(self.locations, f, indent=4)
 
-    # --- ADDED MISSING FUNCTIONS ---
     async def loop_emote(self, emote_id, target_id, target_name):
         self.looping_users[target_name] = True
         while self.looping_users.get(target_name, False):
@@ -91,4 +96,3 @@ class CommandHandler:
     
     async def execute(self, user, message: str) -> None:
         await handle_command(self, user, message)
-

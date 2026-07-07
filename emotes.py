@@ -236,7 +236,14 @@ EMOTE_DICT= {
     "hero": "emote-hero",
     "attentive": "idle-layingdown",
     "spider": "emote-spiderman",
-    "uww": "idle-uwu"
+    "uww": "idle-uwu", 
+    "zenmode" : "emote-meditate-idle",
+    "freshstep": "dance-freshprince",
+    "cloudsit": "bag_n-cloudsit",
+    "stunt": "emote-outfit3",
+    "diva": "emote-threadexchange-posing",
+    "stunt2": "emote-outfit2"
+
 }
 
 EMOTE_LIST = [

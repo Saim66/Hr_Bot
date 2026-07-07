@@ -46,6 +46,7 @@ async def handle_command(handler_instance, user, message):
 class CommandHandler:
     def __init__(self, bot):
         self.bot = bot
+        self.all_loop_task = None
         room_id = os.getenv("ROOM_ID", "default_room")
         self.data_dir = "/app/data"
         if not os.path.exists(self.data_dir): os.makedirs(self.data_dir)

@@ -25,8 +25,7 @@ async def handle_command(handler_instance, user, message):
             "help": "help", "welcome": "welcome", "vip": "vip",
             "s": "movement", "to": "movement", "cords": "movement",
             "kick": "moderation", "ban": "moderation", "unban": "moderation",
-            "set": "locations", "dloc": "locations", "deleteloc": "locations", "clocs": "locations",
-            "all": "emote_all", "wallet": "wallet", "tip": "tip", "stop": "loops", "0": "loops"
+            "set": "locations", "dloc": "locations", "deleteloc": "locations", "clocs": "locations", "wallet": "wallet", "tip": "tip", "stop": "loops", "0": "loops"
         }
         
         if trigger in mapping:

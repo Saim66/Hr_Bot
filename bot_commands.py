@@ -21,7 +21,6 @@ async def handle_command(handler_instance, user, message):
     # 2. CHECK FOR PREFIX COMMANDS
     else:
         trigger = parts[0].lstrip("/") 
-        # Added "all" to mapping for the new command
         mapping = {
             "help": "help", "welcome": "welcome", "vip": "vip",
             "s": "movement", "to": "movement", "cords": "movement",
@@ -90,12 +89,18 @@ class CommandHandler:
         self.looping_users[target_name] = False
     
     async def stop_all_emotes(self, username):
-        # Stop individual loop for this user
-        self.looping_users[username] = False
+        """Stops both individual loops and the global /all loop."""
+        # Stop individual user loop
+        if username in self.looping_users:
+            self.looping_users[username] = False
         
-        # Stop global /all loop if it exists
+        # Stop global /all loop cleanly
         if self.all_loop_task:
             self.all_loop_task.cancel()
+            try:
+                await self.all_loop_task
+            except asyncio.CancelledError:
+                pass
             self.all_loop_task = None
         return True
     

@@ -37,11 +37,21 @@ async def execute(handler, user, message):
             handler.active_tasks[user.username.lower()] = asyncio.create_task(dual_loop())
             await handler.bot.highrise.chat(f"✨ Looping {trigger} for you and @{target.username}!")
             
-    # 2. HANDLE STOP (Instant Stop)
+        # ... (rest of your code)
     elif trigger in ["stop", "0"]:
         name = user.username.lower()
         if name in handler.active_tasks:
+            # 1. Stop the loop task
             handler.looping_users[name] = False
             handler.active_tasks[name].cancel()
             del handler.active_tasks[name]
+            
+            # 2. INSTANT RESET: Send the 'idle' emote to both users
+            # This forces the avatars to stop the previous animation
+            await handler.bot.highrise.send_emote("idle-dance-casual", user.id)
+            
+            # If there was a target in the loop, find them and reset them too
+            # (Note: This assumes you stored the target in the loop logic)
+            # You may want to track the current target ID in the handler
+            
             await handler.bot.highrise.chat(f"⏹️ Stopped your emote loops.")

@@ -16,10 +16,8 @@ async def handle_command(handler_instance, user, message):
     if not parts: return
     
     # 1. CHECK FOR LOCATION FIRST (No prefix needed)
-    # Check if the raw word (e.g., 'stage') exists in saved locations
     if parts[0] in handler_instance.locations:
         module_name = "locations"
-    
     # 2. CHECK FOR PREFIX COMMANDS
     else:
         trigger = parts[0].lstrip("/") 
@@ -38,7 +36,6 @@ async def handle_command(handler_instance, user, message):
         else:
             return
 
-    # Execute the identified module
     try:
         module = importlib.import_module(f"commands.{module_name}")
         await module.execute(handler_instance, user, message)
@@ -60,6 +57,17 @@ class CommandHandler:
         self.locations = self.load_locations()
         self.looping_users = {}
         self.active_tasks = {}
+        
+        # --- DEBUGGING: Logs once on startup ---
+        if os.path.exists(self.loc_file):
+            logger.info(f"✅ Data file found at: {self.loc_file}")
+            try:
+                with open(self.loc_file, "r") as f:
+                    logger.info(f"📂 Loaded Locations: {f.read()}")
+            except Exception as e:
+                logger.error(f"Could not read file: {e}")
+        else:
+            logger.info(f"⚠️ Data file not found at: {self.loc_file} (Will be created on first /set)")
 
     def load_data(self):
         if os.path.exists(self.data_file):

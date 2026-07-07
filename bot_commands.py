@@ -91,3 +91,4 @@ class CommandHandler:
     
     async def execute(self, user, message: str) -> None:
         await handle_command(self, user, message)
+

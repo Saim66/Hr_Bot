@@ -11,11 +11,6 @@ async def execute(handler, user, message):
         await stop_user_loops(handler, user)
         return
 
-    # 2. ALL LOOP
-    if parts[0] == "all" and len(parts) > 1:
-        await start_all_loop(handler, user, parts[1])
-        return
-
     # 3. TARGETED/INDIVIDUAL LOOP
     if parts[0] in EMOTE_DICT:
         await start_dual_loop(handler, user, parts)

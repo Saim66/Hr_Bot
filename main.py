@@ -54,7 +54,7 @@ class Bot(BaseBot):
 
     async def on_user_leave(self, user: User) -> None:
         # Clean up loops on leave
-        await self.cmd.stop_user_loops(None, user)
+        await self.cmd.stop_user_loops(user)
 
     async def on_tip(self, sender: User, receiver: User, tip):
         # Forward tip logic to handler

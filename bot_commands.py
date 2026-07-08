@@ -22,7 +22,7 @@ async def handle_command(handler_instance, user, message):
         "vip": "vip", "s": "movement", "to": "movement", "cords": "movement",
         "kick": "moderation", "ban": "moderation", "unban": "moderation",
         "set": "locations", "dloc": "locations", "deleteloc": "locations", 
-        "clocs": "locations", "wallet": "wallet", "tip": "tip", 
+        "clocs": "locations", "wallet": "wallet", "tip": "tip", "tipall": "tip", 
         "stop": "loops", "0": "loops"
     }
 

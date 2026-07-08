@@ -10,17 +10,22 @@ logger = logging.getLogger(__name__)
 
 async def handle_command(handler_instance, user, message):
     msg = message.strip()
-    # Enforce prefix for everything
-    if not msg.startswith("/"):
-        return
-
     msg_lower = msg.lower()
     parts = msg_lower.split()
-    if not parts: return
+    if not parts: 
+        return
     
+    # 1. Determine trigger
+    # We allow the trigger to be the word itself (for emotes)
     trigger = parts[0].lstrip("/").lower()
     
-    # Define routing
+    # 2. Check if the message is a system command or an emote
+    # System commands MUST start with '/'
+    is_command = msg.startswith("/")
+    # Emote loop is valid if it's in the dictionary, regardless of prefix
+    is_emote = trigger in EMOTE_DICT
+
+    # 3. Routing Logic
     mapping = {
         "help": "help", "welcome": "welcome", "setwelcome": "welcome",
         "vip": "vip", "s": "movement", "to": "movement", "cords": "movement",
@@ -29,12 +34,13 @@ async def handle_command(handler_instance, user, message):
         "clocs": "locations", "wallet": "wallet", "tip": "tip", 
         "stop": "loops", "0": "loops", "all": "loops"
     }
-    
-    if trigger in mapping:
+
+    if is_command and trigger in mapping:
         module_name = mapping[trigger]
-    elif trigger in EMOTE_DICT:
+    elif is_emote:
         module_name = "loops"
     else:
+        # If it doesn't start with / and isn't an emote, ignore it
         return
 
     try:

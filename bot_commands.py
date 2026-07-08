@@ -23,7 +23,7 @@ async def handle_command(handler_instance, user, message):
         mapping = {
             "help": "help", "welcome": "welcome", "vip": "vip",
             "s": "movement", "to": "movement", "cords": "movement",
-            "kick": "moderation", "ban": "moderation", "unban": "moderation",
+            "kick": "moderation", "ban": "moderation", "unban": "moderation","setwelcome": "welcome",
             "set": "locations", "dloc": "locations", "deleteloc": "locations", 
             "clocs": "locations", "wallet": "wallet", "tip": "tip", 
             "stop": "loops", "0": "loops", "all": "loops"
@@ -51,6 +51,9 @@ class CommandHandler:
             
         self.data_file = os.path.join(self.data_dir, f"bot_data_{room_id}.json")
         self.loc_file = os.path.join(self.data_dir, f"locations_{room_id}.json")
+        self.data = self.load_data()
+        if "custom_welcome" not in self.data:
+            self.data["custom_welcome"] = ""
 
         self.data = self.load_data()
         self.locations = self.load_locations()

@@ -15,6 +15,7 @@ async def handle_command(handler_instance, user, message):
         return
     
     msg_lower = msg.lower()
+    # Trigger is the command name without the leading slash
     trigger = parts[0].lstrip("/").lower()
     
     # 1. DEFINE ROUTING
@@ -34,6 +35,7 @@ async def handle_command(handler_instance, user, message):
 
     # 3. ROUTING DECISION
     # A) Slash Commands (Require '/')
+    # Tip, kick, ban, set, etc., MUST start with /
     if is_command and trigger in mapping:
         module_name = mapping[trigger]
     elif is_command and is_location:
@@ -43,7 +45,7 @@ async def handle_command(handler_instance, user, message):
     elif not is_command and is_emote:
         module_name = "loops"
     
-    # C) Teleport Locations (No slash required)
+    # C) Teleport Locations (No slash required, e.g., f1)
     elif not is_command and is_location:
         module_name = "locations"
         

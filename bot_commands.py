@@ -16,14 +16,12 @@ async def handle_command(handler_instance, user, message):
         return
     
     # 1. Determine trigger
-    # We allow the trigger to be the word itself (for emotes)
     trigger = parts[0].lstrip("/").lower()
     
-    # 2. Check if the message is a system command or an emote
-    # System commands MUST start with '/'
+    # 2. Logic flags
     is_command = msg.startswith("/")
-    # Emote loop is valid if it's in the dictionary, regardless of prefix
     is_emote = trigger in EMOTE_DICT
+    is_location = trigger in handler_instance.locations
 
     # 3. Routing Logic
     mapping = {
@@ -35,12 +33,14 @@ async def handle_command(handler_instance, user, message):
         "stop": "loops", "0": "loops", "all": "loops"
     }
 
+    # Decide where to route
     if is_command and trigger in mapping:
         module_name = mapping[trigger]
-    elif is_emote:
+    elif is_command and is_location: # Teleporting to a location requires '/'
+        module_name = "locations"
+    elif is_emote: # Emotes work WITHOUT prefix
         module_name = "loops"
     else:
-        # If it doesn't start with / and isn't an emote, ignore it
         return
 
     try:
@@ -58,6 +58,7 @@ class CommandHandler:
         
         self.data_file = os.path.join(self.data_dir, f"bot_data_{room_id}.json")
         self.loc_file = os.path.join(self.data_dir, f"locations_{room_id}.json")
+        
         self.data = self.load_data()
         self.locations = self.load_locations()
         self.active_tasks = {}
@@ -87,4 +88,6 @@ class CommandHandler:
         await stop_func(self, user)
 
     async def execute(self, user, message: str) -> None:
+        # Re-load locations every time to ensure new /set locations work immediately
+        self.locations = self.load_locations()
         await handle_command(self, user, message)

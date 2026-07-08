@@ -10,20 +10,25 @@ async def execute(handler, user, message):
             await handler.bot.highrise.chat("Usage: /tipall [amount]")
             return
         
-        amount_str = parts[1].lower().replace("gold", "")
-        item_id = f"gold_bar_{amount_str}"
+        amount = parts[1].lower().replace("gold", "")
+        item_id = f"gold_bar_{amount}"
         
         room_users = await handler.bot.highrise.get_room_users()
         count = 0
-        await handler.bot.highrise.chat(f"⏳ Tipping everyone {amount_str} gold...")
+        await handler.bot.highrise.chat(f"⏳ Tipping everyone {amount} gold...")
         
-        for u, pos in room_users.content:
-            if u.id != user.id:
+        # Correctly unpack the tuple (User, Position)
+        for entry in room_users.content:
+            target_user = entry[0]  # The User object is at index 0
+            
+            if target_user.id != user.id:
                 try:
-                    await handler.bot.highrise.tip_user(u.id, item_id)
-                    await asyncio.sleep(0.5)
+                    await handler.bot.highrise.tip_user(target_user.id, item_id)
+                    await asyncio.sleep(0.6) # Slightly longer delay for stability
                     count += 1
-                except Exception: continue
+                except Exception as e:
+                    print(f"Skipped {target_user.username}: {e}")
+                    continue
         await handler.bot.highrise.chat(f"✅ Finished! Tipped {count} people.")
 
     # Logic for /tip @user [amount]
@@ -33,16 +38,23 @@ async def execute(handler, user, message):
             return
         
         target_name = parts[1].lstrip("@").lower()
-        amount_str = parts[2].lower().replace("gold", "")
-        item_id = f"gold_bar_{amount_str}"
+        amount = parts[2].lower().replace("gold", "")
+        item_id = f"gold_bar_{amount}"
         
         room_users = await handler.bot.highrise.get_room_users()
-        target_id = next((u.id for u in room_users.content if u.username.lower() == target_name), None)
+        
+        # Correctly access the user object from the tuple
+        target_id = None
+        for entry in room_users.content:
+            u = entry[0] # User is at index 0
+            if u.username.lower() == target_name:
+                target_id = u.id
+                break
         
         if target_id:
             try:
                 await handler.bot.highrise.tip_user(target_id, item_id)
-                await handler.bot.highrise.chat(f"✅ Tipped @{target_name} {amount_str} gold!")
+                await handler.bot.highrise.chat(f"✅ Tipped @{target_name} {amount} gold!")
             except Exception as e:
                 await handler.bot.highrise.chat(f"❌ Failed: {str(e)[:30]}")
         else:

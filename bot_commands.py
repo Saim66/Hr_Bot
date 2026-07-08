@@ -86,3 +86,9 @@ class CommandHandler:
     
     async def execute(self, user, message: str) -> None:
         await handle_command(self, user, message)
+        
+    async def stop_user_loops(self, handler, user):
+        """This now allows main.py to trigger the stop logic."""
+        import commands.loops as loops
+        await loops.stop_user_loops(loops, user) 
+        # Note: We pass 'loops' as the handler because the loops module expects it

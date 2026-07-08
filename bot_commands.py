@@ -21,7 +21,7 @@ async def handle_command(handler_instance, user, message):
     else:
         trigger = parts[0].lstrip("/").lower()
        # In bot_commands.py, update the mapping dictionary:
-mapping = {
+     mapping = {
     "help": "help", 
     "welcome": "welcome", 
     "setwelcome": "welcome", # ADD THIS LINE

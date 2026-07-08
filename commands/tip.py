@@ -17,14 +17,14 @@ async def execute(handler, user, message):
         count = 0
         await handler.bot.highrise.chat(f"⏳ Tipping everyone {amount} gold...")
         
-        # Correctly unpack the tuple (User, Position)
+        # Correctly access User object at index 0 of the tuple (User, Position)
         for entry in room_users.content:
-            target_user = entry[0]  # The User object is at index 0
+            target_user = entry[0] 
             
             if target_user.id != user.id:
                 try:
                     await handler.bot.highrise.tip_user(target_user.id, item_id)
-                    await asyncio.sleep(0.6) # Slightly longer delay for stability
+                    await asyncio.sleep(0.6) # Delay to maintain stability
                     count += 1
                 except Exception as e:
                     print(f"Skipped {target_user.username}: {e}")
@@ -43,10 +43,9 @@ async def execute(handler, user, message):
         
         room_users = await handler.bot.highrise.get_room_users()
         
-        # Correctly access the user object from the tuple
         target_id = None
         for entry in room_users.content:
-            u = entry[0] # User is at index 0
+            u = entry[0] # Correctly access User object at index 0
             if u.username.lower() == target_name:
                 target_id = u.id
                 break

@@ -10,45 +10,52 @@ logger = logging.getLogger(__name__)
 
 async def handle_command(handler_instance, user, message):
     msg = message.strip()
-    # 1. ENFORCE PREFIX FOR COMMANDS
-    # We only proceed if it starts with '/'
-    if not msg.startswith("/"):
-        # Exception: Allow emotes without prefix
-        parts = msg.split()
-        if not parts or parts[0].lower() not in EMOTE_DICT:
-            return
-        module_name = "loops"
-    else:
-        # 2. PREFIX COMMAND LOGIC
-        msg_lower = msg.lower()
-        parts = msg_lower.split()
-        trigger = parts[0].lstrip("/").lower()
-        
-        mapping = {
-            "help": "help", "welcome": "welcome", "vip": "vip",
-            "s": "movement", "to": "movement", "cords": "movement",
-            "kick": "moderation", "ban": "moderation", "unban": "moderation",
-            "set": "locations", "dloc": "locations", "deleteloc": "locations", 
-            "clocs": "locations", "wallet": "wallet", "tip": "tip", 
-            "stop": "loops", "0": "loops", "all": "loops"
-        }
-        
-        # Check if it's a registered command
-        if trigger in mapping:
-            module_name = mapping[trigger]
-        # Check if it's a saved location (Only if it starts with /)
-        elif trigger in handler_instance.locations:
-            module_name = "locations"
-        else:
-            return
+    parts = msg.split()
+    if not parts:
+        return
+    
+    msg_lower = msg.lower()
+    trigger = parts[0].lstrip("/").lower()
+    
+    # 1. DEFINE ROUTING
+    mapping = {
+        "help": "help", "welcome": "welcome", "setwelcome": "welcome",
+        "vip": "vip", "s": "movement", "to": "movement", "cords": "movement",
+        "kick": "moderation", "ban": "moderation", "unban": "moderation",
+        "set": "locations", "dloc": "locations", "deleteloc": "locations", 
+        "clocs": "locations", "wallet": "wallet", "tip": "tip", 
+        "stop": "loops", "0": "loops", "all": "loops"
+    }
 
-    # 3. EXECUTION
+    # 2. LOGIC FLAGS
+    is_command = msg.startswith("/")
+    is_emote = trigger in EMOTE_DICT
+    is_location = trigger in handler_instance.locations
+
+    # 3. ROUTING DECISION
+    # A) Slash Commands (Require '/')
+    if is_command and trigger in mapping:
+        module_name = mapping[trigger]
+    elif is_command and is_location:
+        module_name = "locations"
+    
+    # B) Emote Loops (No slash required)
+    elif not is_command and is_emote:
+        module_name = "loops"
+    
+    # C) Teleport Locations (No slash required)
+    elif not is_command and is_location:
+        module_name = "locations"
+        
+    else:
+        return
+
+    # 4. EXECUTION
     try:
         module = importlib.import_module(f"commands.{module_name}")
         await module.execute(handler_instance, user, message)
     except Exception as e:
         logger.error(f"Error executing {module_name}: {e}")
-        # Safeguard: check if bot is still connected before chatting
         if hasattr(handler_instance.bot.highrise, "ws") and handler_instance.bot.highrise.ws:
             await handler_instance.bot.highrise.chat(f"❌ Error: {str(e)[:50]}")
 
@@ -78,7 +85,6 @@ class CommandHandler:
         with open(self.data_file, "w") as f: json.dump(self.data, f, indent=4)
 
     def load_locations(self):
-        # Always reload from file to catch new /set locations
         if os.path.exists(self.loc_file):
             try:
                 with open(self.loc_file, "r") as f: return json.load(f)
@@ -86,5 +92,6 @@ class CommandHandler:
         return {}
 
     async def execute(self, user, message: str) -> None:
-        self.locations = self.load_locations() # Ensure fresh data
+        # Refresh locations every time so newly /set locations work immediately
+        self.locations = self.load_locations()
         await handle_command(self, user, message)

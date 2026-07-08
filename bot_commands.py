@@ -15,19 +15,18 @@ async def handle_command(handler_instance, user, message):
     parts = msg_lower.split()
     if not parts: return
     
-    # 1. CHECK FOR LOCATION FIRST
+    # Check if trigger is a location
     if parts[0] in handler_instance.locations:
         module_name = "locations"
-    # 2. CHECK FOR PREFIX COMMANDS
     else:
-        trigger = parts[0].lstrip("/") 
+        trigger = parts[0].lstrip("/").lower()
         mapping = {
             "help": "help", "welcome": "welcome", "vip": "vip",
             "s": "movement", "to": "movement", "cords": "movement",
             "kick": "moderation", "ban": "moderation", "unban": "moderation",
             "set": "locations", "dloc": "locations", "deleteloc": "locations", 
             "clocs": "locations", "wallet": "wallet", "tip": "tip", 
-            "stop": "loops", "0": "loops", "all": "loops" # Added 'all' here
+            "stop": "loops", "0": "loops", "all": "loops"
         }
         
         if trigger in mapping:
@@ -42,14 +41,10 @@ async def handle_command(handler_instance, user, message):
         await module.execute(handler_instance, user, message)
     except Exception as e:
         logger.error(f"Error executing {module_name}: {e}")
-        # Only chat if the connection is active to avoid crashes
-        if handler_instance.bot.highrise.ws and not handler_instance.bot.highrise.ws.closed:
-            await handler_instance.bot.highrise.chat(f"❌ Error: {str(e)[:50]}")
 
 class CommandHandler:
     def __init__(self, bot):
         self.bot = bot
-        self.all_loop_task = None 
         room_id = os.getenv("ROOM_ID", "default_room")
         self.data_dir = "/app/data"
         if not os.path.exists(self.data_dir): os.makedirs(self.data_dir)
@@ -59,9 +54,6 @@ class CommandHandler:
 
         self.data = self.load_data()
         self.locations = self.load_locations()
-        
-        # Unified tracking
-        self.looping_users = {}
         self.active_tasks = {}
 
     def load_data(self):
@@ -69,7 +61,7 @@ class CommandHandler:
             try:
                 with open(self.data_file, "r") as f: return json.load(f)
             except: pass
-        return {"vips": [], "restricted": [], "welcomes": {}}
+        return {"vips": [], "restricted": [], "welcomes": {}, "custom_welcome": ""}
 
     def save_data(self):
         with open(self.data_file, "w") as f: json.dump(self.data, f, indent=4)
@@ -81,14 +73,11 @@ class CommandHandler:
             except: pass
         return {}
 
-    def save_locations(self):
-        with open(self.loc_file, "w") as f: json.dump(self.locations, f, indent=4)
-    
+    # --- ADDED THIS TO FIX YOUR ATTRIBUTE ERROR ---
+    async def stop_user_loops(self, user):
+        """Bridge function to trigger loop cleanup from main.py"""
+        from commands.loops import stop_user_loops as stop_func
+        await stop_func(self, user)
+
     async def execute(self, user, message: str) -> None:
         await handle_command(self, user, message)
-        
-    async def stop_user_loops(self, handler, user):
-        """This now allows main.py to trigger the stop logic."""
-        import commands.loops as loops
-        await loops.stop_user_loops(loops, user) 
-        # Note: We pass 'loops' as the handler because the loops module expects it

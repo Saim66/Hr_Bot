@@ -25,7 +25,7 @@ async def execute(handler, user, message):
         # Custom Greeting (Whisper)
         custom = handler.data.get("custom_welcome")
         if custom:
-            await handler.bot.highrise.send_whisper(user.id, f"📜 Note: {custom}")
+            await handler.bot.highrise.send_whisper(user.id, f"📜 : {custom}")
         return
 
     # 3. COMMAND: Check status

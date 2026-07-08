@@ -77,7 +77,7 @@ class CommandHandler:
     async def stop_user_loops(self, user):
         """Bridge function to trigger loop cleanup from main.py"""
         from commands.loops import stop_user_loops as stop_func
+        # Pass (self, user) so loops.py receives the handler and user correctly
         await stop_func(self, user)
-
     async def execute(self, user, message: str) -> None:
         await handle_command(self, user, message)

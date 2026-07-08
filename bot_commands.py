@@ -15,10 +15,8 @@ async def handle_command(handler_instance, user, message):
         return
     
     msg_lower = msg.lower()
-    # Trigger is the command name without the leading slash
     trigger = parts[0].lstrip("/").lower()
     
-    # 1. DEFINE ROUTING
     mapping = {
         "help": "help", "welcome": "welcome", "setwelcome": "welcome",
         "vip": "vip", "s": "movement", "to": "movement", "cords": "movement",
@@ -28,31 +26,22 @@ async def handle_command(handler_instance, user, message):
         "stop": "loops", "0": "loops"
     }
 
-    # 2. LOGIC FLAGS
     is_command = msg.startswith("/")
     is_emote = trigger in EMOTE_DICT
     is_location = trigger in handler_instance.locations
 
-    # 3. ROUTING DECISION
-    # A) Slash Commands (Require '/')
-    # Tip, kick, ban, set, etc., MUST start with /
+    # ROUTING DECISION
     if is_command and trigger in mapping:
         module_name = mapping[trigger]
     elif is_command and is_location:
         module_name = "locations"
-    
-    # B) Emote Loops (No slash required)
     elif not is_command and is_emote:
         module_name = "loops"
-    
-    # C) Teleport Locations (No slash required, e.g., f1)
     elif not is_command and is_location:
         module_name = "locations"
-        
     else:
         return
 
-    # 4. EXECUTION
     try:
         module = importlib.import_module(f"commands.{module_name}")
         await module.execute(handler_instance, user, message)
@@ -94,6 +83,5 @@ class CommandHandler:
         return {}
 
     async def execute(self, user, message: str) -> None:
-        # Refresh locations every time so newly /set locations work immediately
         self.locations = self.load_locations()
         await handle_command(self, user, message)

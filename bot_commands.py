@@ -20,14 +20,28 @@ async def handle_command(handler_instance, user, message):
         module_name = "locations"
     else:
         trigger = parts[0].lstrip("/").lower()
-        mapping = {
-            "help": "help", "welcome": "welcome", "vip": "vip",
-            "s": "movement", "to": "movement", "cords": "movement",
-            "kick": "moderation", "ban": "moderation", "unban": "moderation","setwelcome": "welcome",
-            "set": "locations", "dloc": "locations", "deleteloc": "locations", 
-            "clocs": "locations", "wallet": "wallet", "tip": "tip", 
-            "stop": "loops", "0": "loops", "all": "loops"
-        }
+       # In bot_commands.py, update the mapping dictionary:
+mapping = {
+    "help": "help", 
+    "welcome": "welcome", 
+    "setwelcome": "welcome", # ADD THIS LINE
+    "vip": "vip",
+    "s": "movement", 
+    "to": "movement", 
+    "cords": "movement",
+    "kick": "moderation", 
+    "ban": "moderation", 
+    "unban": "moderation",
+    "set": "locations", 
+    "dloc": "locations", 
+    "deleteloc": "locations", 
+    "clocs": "locations", 
+    "wallet": "wallet", 
+    "tip": "tip", 
+    "stop": "loops", 
+    "0": "loops", 
+    "all": "loops"
+}
         
         if trigger in mapping:
             module_name = mapping[trigger]

@@ -11,7 +11,7 @@ async def execute(handler, user, message):
         await stop_user_loops(handler, user)
         return
 
-    # 3. TARGETED/INDIVIDUAL LOOP
+    # 2. TARGETED/INDIVIDUAL LOOP
     if parts[0] in EMOTE_DICT:
         await start_dual_loop(handler, user, parts)
 
@@ -32,7 +32,8 @@ async def start_dual_loop(handler, user, parts):
                     await handler.bot.highrise.send_emote(actual_emote, u_id)
                     await handler.bot.highrise.send_emote(actual_emote, t_id)
                     await asyncio.sleep(6)
-            except asyncio.CancelledError: pass
+            except asyncio.CancelledError: 
+                pass
 
         handler.active_tasks[user.username.lower()] = {
             "task": asyncio.create_task(dual_loop(user.id, target.id)),
@@ -40,28 +41,8 @@ async def start_dual_loop(handler, user, parts):
             "ids": [user.id, target.id]
         }
         await handler.bot.highrise.chat(f"✨ Looping {parts[0]} for you and @{target.username}!")
-
-async def start_all_loop(handler, user, emote_name):
-    emote_id = EMOTE_DICT.get(emote_name) or EMOTE_DICT.get(f"emote-{emote_name}")
-    if emote_id:
-        # Clear user's previous loops before starting global
-        await stop_user_loops(handler, user)
-        
-        async def all_loop():
-            try:
-                while True:
-                    users = (await handler.bot.highrise.get_room_users()).content
-                    for u, _ in users:
-                        await handler.bot.highrise.send_emote(emote_id, u.id)
-                    await asyncio.sleep(6)
-            except asyncio.CancelledError: pass
-        
-        handler.active_tasks[user.username.lower()] = {
-            "task": asyncio.create_task(all_loop()),
-            "type": "all",
-            "ids": [] # Global doesn't need specific IDs to reset
-        }
-        await handler.bot.highrise.chat(f"✨ Everyone is now doing: {emote_name}")
+    else:
+        await handler.bot.highrise.chat(f"❌ User @{target_name} not found in this room.")
 
 async def stop_user_loops(handler, user):
     """Instant stop for the specific user who triggered it."""
@@ -72,11 +53,13 @@ async def stop_user_loops(handler, user):
         # 1. Cancel the specific task
         data["task"].cancel()
         
-        # 2. Reset avatars if it was a dual-loop
-        if data["type"] == "dual":
-            idle = EMOTE_DICT.get("idle-dance-casual") or "idle"
-            for uid in data["ids"]:
+        # 2. Reset avatars
+        idle = EMOTE_DICT.get("idle-dance-casual") or "idle"
+        for uid in data.get("ids", []):
+            try:
                 await handler.bot.highrise.send_emote(idle, uid)
+            except Exception:
+                continue
         
         del handler.active_tasks[name]
         await handler.bot.highrise.chat(f"⏹️ Stopped your emote loops.")

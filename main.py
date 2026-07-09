@@ -34,6 +34,7 @@ class Bot(BaseBot):
         await self.cmd.execute(user, message)
 
     async def on_user_join(self, user: User, position: Position) -> None:
+        print(f"DEBUG: User joined event triggered for {user.username}") # ADD THIS LINE
         try:
             user_lower = user.username.lower()
             # Replace with your actual username or ID

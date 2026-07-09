@@ -13,7 +13,6 @@ async def handle_command(handler_instance, user, message):
     parts = msg.split()
     if not parts: return
     
-    # Check if slash command or direct teleport
     trigger = parts[0].lstrip("/").lower()
     
     mapping = {
@@ -27,15 +26,12 @@ async def handle_command(handler_instance, user, message):
     }
 
     is_command = msg.startswith("/")
-    is_emote = trigger in EMOTE_DICT
     is_location = trigger in handler_instance.locations
 
     if is_command and trigger in mapping:
         module_name = mapping[trigger]
     elif is_command and is_location:
         module_name = "locations"
-    elif not is_command and is_emote:
-        module_name = "loops"
     elif not is_command and is_location:
         module_name = "locations"
     else:
@@ -48,19 +44,21 @@ async def handle_command(handler_instance, user, message):
     except Exception as e:
         logger.error(f"Error executing {module_name}: {e}")
         try:
-            await handler_instance.bot.highrise.chat(f"❌ Error in {module_name}: {str(e)[:40]}")
+            await handler_instance.bot.highrise.chat(f"❌ Error: {str(e)[:30]}")
         except: pass
 
 class CommandHandler:
-    def __init__(self, bot):
+    def __init__(self, bot, room_id):
         self.bot = bot
-        room_id = os.getenv("ROOM_ID", "default_room")
-        # Use your persistent path here
+        self.room_id = room_id
+        
+        # Path to persistent Railway volume
         self.data_dir = "/var/lib/containers/railwayapp/bind-mounts/vol_iatnm6uo2p12iuk5"
         if not os.path.exists(self.data_dir): os.makedirs(self.data_dir)
             
-        self.data_file = os.path.join(self.data_dir, "bot_data.json")
-        self.loc_file = os.path.join(self.data_dir, "locations.json")
+        # Namespaced files per room ID to prevent data conflicts
+        self.data_file = os.path.join(self.data_dir, f"bot_data_{self.room_id}.json")
+        self.loc_file = os.path.join(self.data_dir, f"locations_{self.room_id}.json")
 
         self.data = self.load_data()
         self.locations = self.load_locations()
@@ -81,12 +79,10 @@ class CommandHandler:
         return {}
 
     def save_data(self):
-        """Saves VIPs and other settings to the persistent volume."""
         with open(self.data_file, "w") as f:
             json.dump(self.data, f, indent=4)
 
     def save_locations(self):
-        """Saves teleports to the persistent volume."""
         with open(self.loc_file, "w") as f:
             json.dump(self.locations, f, indent=4)
 

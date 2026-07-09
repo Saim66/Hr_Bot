@@ -3,7 +3,7 @@ import asyncio
 async def execute(handler, user, message):
     # 1. Permission Gatekeeper: Only let the owner pass
     # Replace with your actual username
-    owner_username = "your_actual_username"
+    owner_username = "saim06"
     
     if user.username.lower() != owner_username.lower():
         await handler.bot.highrise.chat(f"🚫 @{user.username}, you are not the owner.")

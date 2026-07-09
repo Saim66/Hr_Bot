@@ -2,29 +2,28 @@ import config
 
 async def execute(handler, user, message):
     parts = message.split()
-    action = parts[0].lower() # e.g., "/addmod"
+    action = parts[0].lower() # /addmod, /rmod, or /mods
 
-    # 1. LIST MODS COMMAND (/mods)
+    # 1. LIST MODS COMMAND
     if action == "/mods":
         mods = handler.data.get("mods", [])
         if not mods:
-            await handler.bot.highrise.chat("📜 The moderator list is currently empty.")
+            await handler.bot.highrise.chat("📜 The moderator list is empty.")
         else:
             await handler.bot.highrise.chat(f"📜 Current Moderators: {', '.join(mods)}")
         return
 
-    # 2. PERMISSION CHECK (Owner Only)
+    # 2. OWNER PERMISSION GATE
     if not config.is_owner(user.username):
         await handler.bot.highrise.chat(f"🚫 @{user.username}, only the Owner can manage moderators.")
         return
 
-    # 3. ADD/REMOVE COMMANDS
+    # 3. ADD/REMOVE LOGIC
     if len(parts) < 2:
         await handler.bot.highrise.chat("Usage: /addmod @username or /rmod @username")
         return
 
     target_name = parts[1].lstrip("@").lower()
-
     if "mods" not in handler.data:
         handler.data["mods"] = []
 
@@ -32,14 +31,14 @@ async def execute(handler, user, message):
         if target_name not in handler.data["mods"]:
             handler.data["mods"].append(target_name)
             handler.save_data()
-            await handler.bot.highrise.chat(f"✅ @{target_name} is now a moderator.")
+            await handler.bot.highrise.chat(f"✅ @{target_name} added to mods.")
         else:
-            await handler.bot.highrise.chat(f"@{target_name} is already a moderator.")
+            await handler.bot.highrise.chat(f"@{target_name} is already a mod.")
 
     elif action == "/rmod":
         if target_name in handler.data["mods"]:
             handler.data["mods"].remove(target_name)
             handler.save_data()
-            await handler.bot.highrise.chat(f"✅ @{target_name} removed from moderator list.")
+            await handler.bot.highrise.chat(f"✅ @{target_name} removed from mods.")
         else:
-            await handler.bot.highrise.chat(f"@{target_name} was not a moderator.")
+            await handler.bot.highrise.chat(f"@{target_name} was not a mod.")

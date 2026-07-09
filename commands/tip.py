@@ -4,15 +4,16 @@ async def execute(handler, user, message):
     parts = message.split()
     cmd = parts[0].lower()
     
-    # Helper to validate and send tips
-    async def send_tip(target_id, target_name, amount):
+    # Helper to validate and send a single tip
+    async def send_tip(target_id, amount):
         item_id = f"gold_bar_{amount}"
         try:
-            # Tip the user
+            # Highrise API call
             await handler.bot.highrise.tip_user(target_id, item_id)
-            return True, None
+            return True
         except Exception as e:
-            return False, str(e)
+            print(f"DEBUG: Tip failed for {target_id}: {e}")
+            return False
 
     # Logic for /tipall [amount]
     if cmd == "/tipall":
@@ -26,16 +27,17 @@ async def execute(handler, user, message):
         await handler.bot.highrise.chat(f"⏳ Tipping everyone {amount} gold...")
         
         count = 0
+        # Iterate over the room_users content
         for entry in room_users.content:
             target_user = entry[0] 
             
+            # Skip the sender to prevent self-tipping errors
             if target_user.id != user.id:
-                success, error = await send_tip(target_user.id, target_user.username, amount)
+                # Add a mandatory delay for multiple transactions
+                await asyncio.sleep(0.8) 
+                success = await send_tip(target_user.id, amount)
                 if success:
                     count += 1
-                    await asyncio.sleep(0.8) # Critical for rate limiting
-                else:
-                    print(f"Failed to tip {target_user.username}: {error}")
         
         await handler.bot.highrise.chat(f"✅ Finished! Successfully tipped {count} people.")
 
@@ -49,13 +51,15 @@ async def execute(handler, user, message):
         amount = parts[2].lower().replace("gold", "")
         
         room_users = await handler.bot.highrise.get_room_users()
-        target_id = next((entry[0].id for entry in room_users.content if entry[0].username.lower() == target_name), None)
+        # Find the target
+        target_entry = next((entry for entry in room_users.content if entry[0].username.lower() == target_name), None)
         
-        if target_id:
-            success, error = await send_tip(target_id, target_name, amount)
+        if target_entry:
+            target_id = target_entry[0].id
+            success = await send_tip(target_id, amount)
             if success:
                 await handler.bot.highrise.chat(f"✅ Tipped @{target_name} {amount} gold!")
             else:
-                await handler.bot.highrise.chat(f"❌ Tip failed: {error}")
+                await handler.bot.highrise.chat(f"❌ Failed to tip @{target_name}. Check bot logs.")
         else:
             await handler.bot.highrise.chat("❌ User not found.")

@@ -15,7 +15,10 @@ class Bot(BaseBot):
         self._api_lock = asyncio.Semaphore(1)
 
     async def on_start(self, session_metadata):
-        logger.info(f"✅ Bot Online in: {session_metadata.room_info.room_name}")
+    # Store the ID so your other files can find it
+    self.bot_id = session_metadata.user_id 
+    logger.info(f"✅ Bot Online in: {session_metadata.room_info.room_name}")
+    
 
     async def safe_api_call(self, coro):
         """Prevents the bot from crashing if an API call fails."""

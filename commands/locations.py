@@ -4,7 +4,7 @@ import json
 import os
 
 # Path to your VIP data on the Railway volume
-VIP_DATA_PATH = "/var/lib/containers/railwayapp/bind-mounts/vol_iatnm6uo2p12iuk5/vips.json"
+VIP_DATA_PATH = "/var/lib/containers/railwayapp/bind-mounts/vol_iatnm6uo2p12iuk5/bot_data.json"
 
 def get_authorized_users():
     """Loads VIP list from the persistent volume."""

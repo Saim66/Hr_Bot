@@ -14,10 +14,10 @@ class Bot(BaseBot):
         self.cmd = CommandHandler(self)
         self._api_lock = asyncio.Semaphore(1)
 
-    async def on_start(self, session_metadata):
-    # Store the ID so your other files can find it
-    self.bot_id = session_metadata.user_id 
-    logger.info(f"✅ Bot Online in: {session_metadata.room_info.room_name}")
+    async def on_start(self, session_metadata: SessionMetadata) -> None:
+        # These lines MUST be indented (pushed to the right)
+        self.bot_id = session_metadata.user_id 
+        logger.info(f"✅ Bot Online in: {session_metadata.room_info.room_name}")
     
 
     async def safe_api_call(self, coro):

@@ -29,15 +29,16 @@ async def execute(handler, user, message):
     room_data = await handler.bot.highrise.get_room_users()
     room_users = room_data.content
     
-    # FIXED: Retrieve bot_id directly from the highrise object
-    bot_id = handler.bot.highrise.bot_id 
+    # Get your bot's name from the handler to identify itself
+    bot_name = "Oceaan_Luxe_Bot".lower()
 
     if target_input == "all":
         await handler.bot.highrise.chat(f"⏳ Tipping everyone {amount} gold...")
         count = 0
         
         for user_obj, _ in room_users:
-            if user_obj.id == user.id or user_obj.id == bot_id:
+            # Skip the sender and the bot itself by comparing names
+            if user_obj.username.lower() == user.username.lower() or user_obj.username.lower() == bot_name:
                 continue
                 
             try:

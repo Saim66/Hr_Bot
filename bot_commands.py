@@ -18,6 +18,9 @@ async def handle_command(handler_instance, user, message):
     
     mapping = {
         "help": "help", "welcome": "welcome", "setwelcome": "welcome",
+        "restart": "owner",
+        "shout": "owner",
+        "emoteall": "owner",
         "vip": "vip", "s": "movement", "to": "movement", "cords": "movement",
         "kick": "moderation", "ban": "moderation", "unban": "moderation",
         "set": "locations", "dloc": "locations", "deleteloc": "locations", 

@@ -1,19 +1,36 @@
 from highrise import Position
+import config
+import json
+import os
+
+# Path to your VIP data on the Railway volume
+VIP_DATA_PATH = "/var/lib/containers/railwayapp/bind-mounts/vol_iatnm6uo2p12iuk5/vips.json"
+
+def get_authorized_users():
+    """Loads VIP list from the persistent volume."""
+    try:
+        if os.path.exists(VIP_DATA_PATH):
+            with open(VIP_DATA_PATH, 'r') as f:
+                data = json.load(f)
+                return [user.lower() for user in data.get("vips", [])]
+        return []
+    except Exception as e:
+        print(f"Error loading VIPs: {e}")
+        return []
 
 async def execute(handler, user, message):
-    """
-    Handles both admin commands (/set, /dloc, /clocs) 
-    and direct teleportation (f1, f2, etc.)
-    """
     parts = message.strip().split()
     if not parts:
         return
         
-    # Get the raw command (e.g., "/set" or "f1")
     raw_cmd = parts[0].lower()
     
-    # 1. HANDLE SLASH COMMANDS (/set, /dloc, /clocs)
+    # 1. OWNER-ONLY ADMIN COMMANDS (/set, /dloc, /clocs)
     if raw_cmd.startswith("/"):
+        if not config.is_owner(user.username):
+            await handler.bot.highrise.chat(f"🚫 @{user.username}, this is an Owner-only command.")
+            return
+
         trigger = raw_cmd.lstrip("/")
         
         if trigger == "set":
@@ -23,32 +40,17 @@ async def execute(handler, user, message):
             
             loc_name = parts[1].lower()
             room_users = await handler.bot.highrise.get_room_users()
-            
-            # Find the user's position
-            target_pos = None
-            for u, pos in room_users.content:
-                if u.id == user.id:
-                    target_pos = pos
-                    break
+            target_pos = next((pos for u, pos in room_users.content if u.id == user.id), None)
             
             if target_pos:
                 handler.locations[loc_name] = {
-                    "x": target_pos.x, 
-                    "y": target_pos.y, 
-                    "z": target_pos.z, 
-                    "facing": target_pos.facing
+                    "x": target_pos.x, "y": target_pos.y, "z": target_pos.z, "facing": target_pos.facing
                 }
                 handler.save_locations()
-                await handler.bot.highrise.chat(f"📍 Location '{loc_name}' saved at current position!")
-            else:
-                await handler.bot.highrise.chat("❌ Could not find your position.")
-
-        elif trigger == "dloc":
-            if len(parts) < 2: 
-                await handler.bot.highrise.chat("Usage: /dloc [location_name]")
-                return
+                await handler.bot.highrise.chat(f"📍 Location '{loc_name}' saved!")
             
-            loc_name = parts[1].lower()
+        elif trigger == "dloc":
+            loc_name = parts[1].lower() if len(parts) > 1 else ""
             if loc_name in handler.locations:
                 del handler.locations[loc_name]
                 handler.save_locations()
@@ -57,18 +59,18 @@ async def execute(handler, user, message):
                 await handler.bot.highrise.chat(f"❌ Location '{loc_name}' not found.")
         
         elif trigger == "clocs":
-            if not handler.locations:
-                await handler.bot.highrise.chat("📍 No locations are currently saved.")
-            else:
-                locs = ", ".join(handler.locations.keys())
-                await handler.bot.highrise.chat(f"📍 Saved locations: {locs}")
+            locs = ", ".join(handler.locations.keys()) if handler.locations else "None"
+            await handler.bot.highrise.chat(f"📍 Saved locations: {locs}")
 
-    # 2. HANDLE TELEPORT WITHOUT PREFIX (e.g., "f1", "f2")
-    # This matches the routing logic we set up in bot_commands.py
+    # 2. RESTRICTED TELEPORT (Owner, Admin, or VIP from Volume)
     elif raw_cmd in handler.locations:
+        authorized_users = get_authorized_users()
+        
+        # Permission check: Owner OR in the VIP file
+        if not (config.is_owner(user.username) or user.username.lower() in authorized_users):
+            await handler.bot.highrise.chat(f"💎 @{user.username}, you need VIP access to use this.")
+            return
+
         data = handler.locations[raw_cmd]
-        try:
-            target_pos = Position(data['x'], data['y'], data['z'], data['facing'])
-            await handler.bot.highrise.teleport(user.id, target_pos)
-        except Exception as e:
-            await handler.bot.highrise.chat(f"❌ Teleport error: {e}")
+        target_pos = Position(data['x'], data['y'], data['z'], data['facing'])
+        await handler.bot.highrise.teleport(user.id, target_pos)

@@ -1,30 +1,35 @@
 import os
 
-# --- 1. SENSITIVE CREDENTIALS (Loaded from Railway Env Variables) ---
-# Never hardcode these in production! 
-# Set these in your Railway Dashboard -> Variables tab.
+# --- 1. SENSITIVE CREDENTIALS ---
 TOKEN = os.getenv("HR_TOKEN")
 ROOM_ID = os.getenv("HR_ROOM_ID")
 
-# --- 2. FALLBACK/DEFAULT SETTINGS ---
-# Only use these if Environment Variables are not found
-API_TOKEN = os.getenv("HR_TOKEN", "04283e4c562763702122cebce3ccf27689e0d61cd2b44b2acd03d548c7b90cbb")
-BOT_NAME = "MyHighriseBot"
-PREFIX = "/"
+# --- 2. PERSISTENT STORAGE PATH ---
+# This matches your Railway Volume path. 
+# Make sure this folder exists on your volume!
+VOLUME_PATH = "/var/lib/containers/railwayapp/bind-mounts/vol_iatnm6uo2p12iuk5"
+DATA_FILE = os.path.join(VOLUME_PATH, "bot_data.json")
 
 # --- 3. ROLE MANAGEMENT ---
-# Using a list allows you to add more owners later without changing code logic
 OWNERS = [os.getenv("OWNER_USERNAME", "saim06").lower()]
 
-# --- 4. MODERATION & WORLD SETTINGS ---
-BANNED_WORDS = ["badword1", "badword2", "toxicword"]
-# Persist these in a database or JSON file, not here, as this list clears on restart
-DYNAMIC_BANNED_USERS = [] 
-
-# Default Coordinates
-SPAWN_POSITION = {"x": 0, "y": 0, "z": 0, "facing": "FrontLeft"}
-
-# --- 5. UTILITY FUNCTION ---
 def is_owner(username):
-    """Helper to check if a user is in the owner list."""
     return username.lower() in OWNERS
+
+# --- 4. AUTHORIZATION HELPER ---
+# Now reads directly from the file on the volume
+import json
+
+def is_authorized(username):
+    """Checks if a user is an Owner, or listed as a VIP in the JSON file."""
+    if is_owner(username):
+        return True
+    
+    if os.path.exists(DATA_FILE):
+        try:
+            with open(DATA_FILE, 'r') as f:
+                data = json.load(f)
+                return username.lower() in [u.lower() for u in data.get("vips", [])]
+        except:
+            return False
+    return False

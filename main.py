@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from highrise import BaseBot, Position, User, CurrencyItem, Item, SessionMetadata
+from highrise import BaseBot, Position, User, CurrencyItem,Union, Item, SessionMetadata
 from bot_commands import CommandHandler
 
 # Configure logging
@@ -75,5 +75,5 @@ class Bot(BaseBot):
         # Ensure the except block is at the same indentation level as the try
         except Exception as e:
             logger.error(f"Error forwarding tip to handler: {e}")
-    except Exception as e:
-        logger.error(f"Error forwarding tip to handler: {e}")
+        except Exception as e:
+            logger.error(f"Error forwarding tip to handler: {e}")

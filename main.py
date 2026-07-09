@@ -36,22 +36,32 @@ class Bot(BaseBot):
     async def on_user_join(self, user: User, position: Position) -> None:
         try:
             user_lower = user.username.lower()
+            # Replace with your actual username or ID
+            OWNER_USERNAME = "saim06" 
+            
+            # --- 1. SPECIAL OWNER WELCOME ---
+            if user_lower == OWNER_USERNAME.lower():
+                await self.highrise.chat(f"👑 Welcome back, Master @{user.username}!")
+                await self.highrise.send_emote("emote-bow", user.id)
+                return # Skip everything else for the owner
+
+            # --- 2. EXISTING LOGIC (VIPs / Restricted) ---
             vips = [v.lower() for v in self.cmd.data.get("vips", [])]
             restricted = [r.lower() for r in self.cmd.data.get("restricted", [])]
 
-            # 1. Restricted user handling
+            # Restricted user handling
             if user_lower in restricted:
                 await self.safe_api_call(self.highrise.teleport(user.id, Position(0, 0, 0, "FrontLeft")))
                 return
 
-            # 2. Public Welcome Logic
+            # Public Welcome Logic
             prefix = "👑 VIP" if user_lower in vips else "👋 Hello"
             await self.safe_api_call(self.highrise.chat(f"{prefix} @{user.username}, welcome to the room!"))
 
-            # 3. Custom Whisper Welcome
+            # Custom Whisper Welcome
             custom = self.cmd.data.get("custom_welcome")
             if custom:
-                await asyncio.sleep(2) # Brief pause before whisper
+                await asyncio.sleep(2) 
                 await self.safe_api_call(self.highrise.send_whisper(user.id, f"📜 Note: {custom}"))
 
         except Exception as e:

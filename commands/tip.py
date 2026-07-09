@@ -1,4 +1,5 @@
 import asyncio
+from highrise import Position
 
 async def execute(handler, user, message):
     args = message.split()
@@ -9,30 +10,27 @@ async def execute(handler, user, message):
     amount = args[1]
     item_id = f"gold_bar_{amount}"
     
-    # 1. Fetch room users
+    # Refresh room users
     room_users = (await handler.bot.highrise.get_room_users()).content
     
-    # 2. Identify the bot's ID automatically (Safe approach)
-    my_bot_id = next((u.id for u, pos in room_users if u.is_bot), None)
-
-    # 3. Filter targets: Exclude sender and the bot itself
-    targets = [u for u, pos in room_users if u.id != user.id and u.id != my_bot_id]
+    # Identify bot safely
+    bot_id = next((u.id for u, pos in room_users if u.is_bot), None)
+    
+    # Get all potential targets (exclude sender and bot)
+    targets = [u for u, pos in room_users if u.id != user.id and u.id != bot_id]
     
     if not targets:
-        await handler.bot.highrise.chat("⚠️ No other users found to tip.")
+        await handler.bot.highrise.chat("⚠️ No one else in the room to tip.")
         return
 
-    await handler.bot.highrise.chat(f"⏳ Tipping {len(targets)} people {amount} gold...")
+    await handler.bot.highrise.chat(f"⏳ Tipping {len(targets)} users {amount} gold...")
     
-    count = 0
-    for target_user in targets:
+    for target in targets:
         try:
-            # Execute tip
-            await handler.bot.highrise.tip_user(target_user.id, item_id)
-            count += 1
-            await asyncio.sleep(1.2) # Mandatory to prevent rate limits
+            await handler.bot.highrise.tip_user(target.id, item_id)
+            await asyncio.sleep(1.2) # Mandatory delay
         except Exception as e:
-            print(f"Failed to tip {target_user.username}: {e}")
+            print(f"DEBUG: Failed to tip {target.username}: {e}")
             continue
             
-    await handler.bot.highrise.chat(f"✅ Finished! Tipped {count} people.")
+    await handler.bot.highrise.chat(f"✅ Finished tipping {len(targets)} users!")

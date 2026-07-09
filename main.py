@@ -65,10 +65,15 @@ class Bot(BaseBot):
             logger.error(f"Error in on_user_leave: {e}")
 
     async def on_tip(self, sender: User, receiver: User, tip: Union[CurrencyItem, Item]) -> None:
-    # 1. If this tip is for the bot, acknowledge it or log it
-    if receiver.id == self.bot_id:
-        print(f"💰 {sender.username} tipped {tip.amount if isinstance(tip, CurrencyItem) else 'item'}")
+        # Everything here MUST be indented by 4 spaces
+        if receiver.id == self.bot_id:
+            print(f"💰 {sender.username} tipped {tip.amount if isinstance(tip, CurrencyItem) else 'item'}")
 
+        try:
+            if hasattr(self.cmd, 'on_tip'):
+                await self.cmd.on_tip(sender, receiver, tip)
+        except Exception as e:
+            logger.error(f"Error forwarding tip to handler: {e}")
     # 2. Forward to your handler for command-specific logic (like tracking)
     try:
         if hasattr(self.cmd, 'on_tip'):

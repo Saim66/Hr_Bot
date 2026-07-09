@@ -62,10 +62,9 @@ class Bot(BaseBot):
             logger.error(f"Error in on_user_leave: {e}")
 
     async def on_tip(self, sender: User, receiver: User, tip: Union[int, CurrencyItem]) -> None:
-        """Corrected on_tip event for Highrise SDK."""
-        # Log the tip in your terminal
-        logger.info(f"💰 {sender.username} tipped {receiver.username} {tip}")
+        # Improved on_tip: Log the transaction and notify room
+        amount = tip.amount if isinstance(tip, CurrencyItem) else tip
+        logger.info(f"💰 {sender.username} tipped {receiver.username} {amount} gold")
         
-        # Pass to your command handler if needed for dynamic updates
-        if hasattr(self.cmd, 'on_tip'):
-            await self.cmd.on_tip(sender, receiver, tip)
+        # Optional: Broadcast the tip to the room
+        await self.highrise.chat(f"✨ @{sender.username} tipped @{receiver.username} {amount} gold!")

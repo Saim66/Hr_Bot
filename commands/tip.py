@@ -10,15 +10,12 @@ async def execute(handler, user, message):
     item_id = f"gold_bar_{amount}"
     
     # 1. Fetch room users
-    room_users_response = await handler.bot.highrise.get_room_users()
-    room_users = room_users_response.content
+    room_users = (await handler.bot.highrise.get_room_users()).content
     
-    # 2. Automatically find the bot's own ID from the room session
-    # The SDK usually makes the bot's ID available via 'handler.bot.bot_id' 
-    # if using the standard highrise-bot-sdk.
-    my_bot_id = getattr(handler.bot, 'bot_id', None)
+    # 2. Identify the bot's ID automatically (Safe approach)
+    my_bot_id = next((u.id for u, pos in room_users if u.is_bot), None)
 
-    # 3. Filter targets: Exclude the sender and the bot itself
+    # 3. Filter targets: Exclude sender and the bot itself
     targets = [u for u, pos in room_users if u.id != user.id and u.id != my_bot_id]
     
     if not targets:
@@ -30,12 +27,12 @@ async def execute(handler, user, message):
     count = 0
     for target_user in targets:
         try:
+            # Execute tip
             await handler.bot.highrise.tip_user(target_user.id, item_id)
             count += 1
-            # Delay is mandatory to prevent rate-limiting by Highrise servers
-            await asyncio.sleep(1.2) 
+            await asyncio.sleep(1.2) # Mandatory to prevent rate limits
         except Exception as e:
-            print(f"DEBUG: Failed to tip {target_user.username}: {e}")
+            print(f"Failed to tip {target_user.username}: {e}")
             continue
             
-    await handler.bot.highrise.chat(f"✅ Finished! Successfully tipped {count} people.")
+    await handler.bot.highrise.chat(f"✅ Finished! Tipped {count} people.")

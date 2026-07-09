@@ -16,23 +16,22 @@ async def execute(handler, user, message):
         
         amount = parts[1].lower().replace("gold", "")
         
-        await handler.bot.highrise.chat(f"⏳ Tipping {len(room_users)-1} people {amount} gold...")
+        # Count only non-bot, non-sender users
+        targets = [entry[0] for entry in room_users if entry[0].id != user.id]
+        
+        await handler.bot.highrise.chat(f"⏳ Tipping {len(targets)} people {amount} gold...")
         
         count = 0
-        for entry in room_users:
-            target_user = entry[0] 
-            
-            # Skip the sender and the bot itself (if bot is in the list)
-            if target_user.id != user.id and target_user.id != handler.bot.bot_id:
-                try:
-                    # Attempt the tip
-                    await handler.bot.highrise.tip_user(target_user.id, f"gold_bar_{amount}")
-                    count += 1
-                    # Small delay to keep the connection healthy
-                    await asyncio.sleep(1.2) 
-                except Exception as e:
-                    print(f"DEBUG: Could not tip {target_user.username}: {e}")
-                    continue
+        for target_user in targets:
+            try:
+                # Attempt the tip
+                await handler.bot.highrise.tip_user(target_user.id, f"gold_bar_{amount}")
+                count += 1
+                # Increase delay to ensure API reliability
+                await asyncio.sleep(1.5) 
+            except Exception as e:
+                print(f"DEBUG: Could not tip {target_user.username}: {e}")
+                continue
         
         await handler.bot.highrise.chat(f"✅ Done! Successfully sent tips to {count} people.")
 

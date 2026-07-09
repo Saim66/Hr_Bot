@@ -16,6 +16,9 @@ async def handle_command(handler_instance, user, message):
     trigger = parts[0].lstrip("/").lower()
     
     mapping = {
+        "addmod": "moderation_manager",
+        "rmod": "moderation_manager",
+        "mods": "moderation_manager" 
         "help": "help", "welcome": "welcome", "setwelcome": "welcome",
         "restart": "owner", "shout": "owner", "emoteall": "owner",
         "vip": "vip", "s": "movement", "to": "movement", "cords": "movement",

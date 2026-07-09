@@ -8,15 +8,14 @@ from emotes import EMOTE_DICT
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# This handles the routing to your command files
 async def handle_command(handler_instance, user, message):
     msg = message.strip()
     parts = msg.split()
-    if not parts:
-        return
+    if not parts: return
     
     trigger = parts[0].lstrip("/").lower()
     
-    # Mapping remains exactly as you had it
     mapping = {
         "help": "help", "welcome": "welcome", "setwelcome": "welcome",
         "vip": "vip", "s": "movement", "to": "movement", "cords": "movement",
@@ -30,8 +29,6 @@ async def handle_command(handler_instance, user, message):
     is_emote = trigger in EMOTE_DICT
     is_location = trigger in handler_instance.locations
 
-    # ROUTING LOGIC
-    # Prioritize Commands -> Locations -> Emotes
     if is_command and trigger in mapping:
         module_name = mapping[trigger]
     elif is_command and is_location:
@@ -44,22 +41,16 @@ async def handle_command(handler_instance, user, message):
         return
 
     try:
-        # Dynamically import the module
         module = importlib.import_module(f"commands.{module_name}")
-        
-        # RELOAD logic added to ensure changes to tip.py take effect instantly
-        importlib.reload(module)
-        
+        importlib.reload(module) # Ensure code updates apply immediately
         await module.execute(handler_instance, user, message)
     except Exception as e:
         logger.error(f"Error executing {module_name}: {e}")
-        # Only chat if the websocket is active to prevent crashes
-        if hasattr(handler_instance.bot.highrise, "ws") and handler_instance.bot.highrise.ws:
-            # We truncate the error to ensure the chat message isn't too long
+        try:
             await handler_instance.bot.highrise.chat(f"❌ Error in {module_name}: {str(e)[:40]}")
+        except: pass
 
 class CommandHandler:
-    # (Your existing __init__ and data loading methods remain unchanged)
     def __init__(self, bot):
         self.bot = bot
         room_id = os.getenv("ROOM_ID", "default_room")
@@ -71,7 +62,6 @@ class CommandHandler:
 
         self.data = self.load_data()
         self.locations = self.load_locations()
-        self.looping_users = {}
         self.active_tasks = {}
 
     def load_data(self):
@@ -91,3 +81,14 @@ class CommandHandler:
     async def execute(self, user, message: str) -> None:
         self.locations = self.load_locations()
         await handle_command(self, user, message)
+
+    # FIXED: Added this method to the class so on_user_leave can find it
+    async def stop_user_loops(self, user):
+        name = user.username.lower()
+        if name in self.active_tasks:
+            data = self.active_tasks[name]
+            # Cancel the task
+            data["task"].cancel()
+            # Clean up tracking
+            del self.active_tasks[name]
+            logger.info(f"⏹️ Stopped loops for {name}")

@@ -2,27 +2,29 @@ import asyncio
 
 async def execute(handler, user, message):
     parts = message.split()
-    
-    # 1. Validation
     if len(parts) < 3:
         await handler.bot.highrise.chat("Usage: /tip [all/@username] [amount]")
         return
 
+    # CHANGE THIS to your bot's username (e.g., "my_cool_bot")
+    BOT_USERNAME = "Oceaan_Luxe_Bot"
+    
     target_input = parts[1].replace("@", "").lower()
     amount = parts[2]
     item_id = f"gold_bar_{amount}"
 
-    # 2. Fetch room users
-    room_users = (await handler.bot.highrise.get_room_users()).content
+    # Fetch room users
+    room_data = await handler.bot.highrise.get_room_users()
+    room_users = room_data.content
 
-    # 3. /tip all Logic
+    # Logic for /tip all
     if target_input == "all":
         await handler.bot.highrise.chat(f"⏳ Tipping everyone {amount} gold...")
         
         count = 0
         for user_obj, _ in room_users:
-            # Skip the sender and the bot itself
-            if user_obj.id == user.id or user_obj.is_bot:
+            # Skip the sender and the bot itself by checking username
+            if user_obj.username.lower() == user.username.lower() or user_obj.username.lower() == BOT_USERNAME.lower():
                 continue
                 
             try:
@@ -30,13 +32,11 @@ async def execute(handler, user, message):
                 count += 1
                 await asyncio.sleep(1.2) # Mandatory delay
             except Exception as e:
-                # Log failures to the terminal for debugging
                 print(f"Failed to tip {user_obj.username}: {e}")
-                continue
         
         await handler.bot.highrise.chat(f"✅ Finished! Successfully tipped {count} people.")
 
-    # 4. /tip @username Logic
+    # Logic for /tip @username
     else:
         target = next((u for u, _ in room_users if u.username.lower() == target_input), None)
         
@@ -44,6 +44,10 @@ async def execute(handler, user, message):
             await handler.bot.highrise.chat("❌ User not found.")
             return
             
+        if target.username.lower() == BOT_USERNAME.lower():
+            await handler.bot.highrise.chat("❌ I cannot tip myself.")
+            return
+
         try:
             await handler.bot.highrise.tip_user(target.id, item_id)
             await handler.bot.highrise.chat(f"✨ Tipped {amount} gold to @{target.username}!")

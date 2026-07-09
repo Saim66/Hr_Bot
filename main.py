@@ -61,10 +61,12 @@ class Bot(BaseBot):
         except Exception as e:
             logger.error(f"Error in on_user_leave: {e}")
 
-    async def on_tip(self, sender: User, receiver: User, tip: Union[int, CurrencyItem]) -> None:
-        # Improved on_tip: Log the transaction and notify room
-        amount = tip.amount if isinstance(tip, CurrencyItem) else tip
-        logger.info(f"💰 {sender.username} tipped {receiver.username} {amount} gold")
-        
-        # Optional: Broadcast the tip to the room
-        await self.highrise.chat(f"✨ @{sender.username} tipped @{receiver.username} {amount} gold!")
+    async def on_tip(self, sender: User, receiver: User, tip):
+        # Forward tip logic to handler
+        if hasattr(self.cmd, 'on_tip'):
+            await self.cmd.on_tip(sender, receiver, tip)
+        try:
+            if hasattr(self.cmd, 'on_tip'):
+                await self.cmd.on_tip(sender, receiver, tip)
+        except Exception as e:
+            logger.error(f"Error in on_tip: {e}")

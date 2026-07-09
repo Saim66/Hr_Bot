@@ -1,0 +1,35 @@
+import config
+
+async def execute(handler, user, message):
+    # Only the Owner should be able to grant/remove mod status
+    if not config.is_owner(user.username):
+        await handler.bot.highrise.chat(f"🚫 @{user.username}, only the Owner can manage moderators.")
+        return
+
+    parts = message.split()
+    if len(parts) < 3:
+        await handler.bot.highrise.chat("Usage: /addmod @username or /rmod @username")
+        return
+
+    action = parts[0].lower() # /addmod or /rmod
+    target_name = parts[1].lstrip("@").lower()
+
+    # Ensure the list exists
+    if "mods" not in handler.data:
+        handler.data["mods"] = []
+
+    if action == "/addmod":
+        if target_name not in handler.data["mods"]:
+            handler.data["mods"].append(target_name)
+            handler.save_data()
+            await handler.bot.highrise.chat(f"✅ @{target_name} is now a moderator.")
+        else:
+            await handler.bot.highrise.chat(f"@{target_name} is already a moderator.")
+
+    elif action == "/rmod":
+        if target_name in handler.data["mods"]:
+            handler.data["mods"].remove(target_name)
+            handler.save_data()
+            await handler.bot.highrise.chat(f"✅ @{target_name} removed from moderator list.")
+        else:
+            await handler.bot.highrise.chat(f"@{target_name} was not a moderator.")

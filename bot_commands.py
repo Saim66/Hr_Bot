@@ -15,17 +15,33 @@ async def handle_command(handler_instance, user, message):
     
     trigger = parts[0].lstrip("/").lower()
     
+    # Corrected dictionary with commas
     mapping = {
         "addmod": "moderation_manager",
         "rmod": "moderation_manager",
-        "mods": "moderation_manager" 
-        "help": "help", "welcome": "welcome", "setwelcome": "welcome",
-        "restart": "owner", "shout": "owner", "emoteall": "owner",
-        "vip": "vip", "s": "movement", "to": "movement", "cords": "movement",
-        "kick": "moderation", "ban": "moderation", "unban": "moderation",
-        "set": "locations", "dloc": "locations", "deleteloc": "locations", 
-        "clocs": "locations", "wallet": "wallet", "tip": "tip", "tipall": "tip", 
-        "stop": "loops", "0": "loops"
+        "mods": "moderation_manager",
+        "help": "help", 
+        "welcome": "welcome", 
+        "setwelcome": "welcome",
+        "restart": "owner", 
+        "shout": "owner", 
+        "emoteall": "owner",
+        "vip": "vip", 
+        "s": "movement", 
+        "to": "movement", 
+        "cords": "movement",
+        "kick": "moderation", 
+        "ban": "moderation", 
+        "unban": "moderation",
+        "set": "locations", 
+        "dloc": "locations", 
+        "deleteloc": "locations", 
+        "clocs": "locations", 
+        "wallet": "wallet", 
+        "tip": "tip", 
+        "tipall": "tip", 
+        "stop": "loops", 
+        "0": "loops"
     }
 
     is_command = msg.startswith("/")
@@ -72,7 +88,7 @@ class CommandHandler:
             try:
                 with open(self.data_file, "r") as f: return json.load(f)
             except: pass
-        return {"vips": [], "restricted": [], "welcomes": {}}
+        return {"vips": [], "mods": [], "restricted": [], "welcomes": {}}
 
     def load_locations(self):
         if os.path.exists(self.loc_file):

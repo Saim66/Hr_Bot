@@ -17,9 +17,9 @@ async def handle_command(handler_instance, user, message):
     
     # Corrected dictionary with commas
     mapping = {
-        "addmod": "moderation_manager",
-        "rmod": "moderation_manager",
-        "mods": "moderation_manager",
+        "addmod": "mod",
+        "rmod": "mod",
+        "mods": "mod",
         "help": "help", 
         "welcome": "welcome", 
         "setwelcome": "welcome",

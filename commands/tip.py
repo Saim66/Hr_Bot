@@ -15,8 +15,9 @@ async def execute(handler, user, message):
             return
         
         amount = parts[1].lower().replace("gold", "")
+        # Standard Highrise Gold Bar IDs are 'gold_bar_1', 'gold_bar_5', etc.
+        item_id = f"gold_bar_{amount}"
         
-        # Count only non-bot, non-sender users
         targets = [entry[0] for entry in room_users if entry[0].id != user.id]
         
         await handler.bot.highrise.chat(f"⏳ Tipping {len(targets)} people {amount} gold...")
@@ -24,16 +25,16 @@ async def execute(handler, user, message):
         count = 0
         for target_user in targets:
             try:
-                # Attempt the tip
-                await handler.bot.highrise.tip_user(target_user.id, f"gold_bar_{amount}")
+                # Execution
+                await handler.bot.highrise.tip_user(target_user.id, item_id)
                 count += 1
-                # Increase delay to ensure API reliability
-                await asyncio.sleep(1.5) 
+                print(f"DEBUG: Successfully sent {item_id} to {target_user.username}")
+                await asyncio.sleep(1.5) # Mandatory delay
             except Exception as e:
-                print(f"DEBUG: Could not tip {target_user.username}: {e}")
+                print(f"DEBUG: Failed to tip {target_user.username}: {e}")
                 continue
         
-        await handler.bot.highrise.chat(f"✅ Done! Successfully sent tips to {count} people.")
+        await handler.bot.highrise.chat(f"✅ Finished! Tipped {count} people.")
 
     # Logic for /tip @user [amount]
     elif cmd == "/tip":
@@ -43,12 +44,13 @@ async def execute(handler, user, message):
         
         target_name = parts[1].lstrip("@").lower()
         amount = parts[2].lower().replace("gold", "")
+        item_id = f"gold_bar_{amount}"
         
         target_user = next((entry[0] for entry in room_users if entry[0].username.lower() == target_name), None)
         
         if target_user:
             try:
-                await handler.bot.highrise.tip_user(target_user.id, f"gold_bar_{amount}")
+                await handler.bot.highrise.tip_user(target_user.id, item_id)
                 await handler.bot.highrise.chat(f"✅ Tipped @{target_name} {amount} gold!")
             except Exception as e:
                 await handler.bot.highrise.chat(f"❌ Failed: {str(e)[:30]}")

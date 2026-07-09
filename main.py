@@ -1,6 +1,7 @@
 import asyncio
 import logging
-from highrise import BaseBot, Position, User, CurrencyItem,Union, Item, SessionMetadata
+import os
+from highrise import BaseBot, Position, User, CurrencyItem, Union, Item, SessionMetadata
 from bot_commands import CommandHandler
 
 # Configure logging
@@ -10,15 +11,14 @@ logger = logging.getLogger(__name__)
 class Bot(BaseBot):
     def __init__(self):
         super().__init__()
-        # Initialize the command handler
-        self.cmd = CommandHandler(self)
+        # FIX 1: Pass the room_id from Environment Variables
+        room_id = os.getenv("ROOM_ID", "default_room")
+        self.cmd = CommandHandler(self, room_id=room_id)
         self._api_lock = asyncio.Semaphore(1)
 
     async def on_start(self, session_metadata: SessionMetadata) -> None:
-        # These lines MUST be indented (pushed to the right)
         self.bot_id = session_metadata.user_id 
         logger.info(f"✅ Bot Online in: {session_metadata.room_info.room_name}")
-    
 
     async def safe_api_call(self, coro):
         """Prevents the bot from crashing if an API call fails."""
@@ -30,32 +30,27 @@ class Bot(BaseBot):
                 return None
 
     async def on_chat(self, user: User, message: str) -> None:
-        # Commands are now handled by bot_commands.py with prefix check
         await self.cmd.execute(user, message)
 
     async def on_user_join(self, user: User, position: Position) -> None:
-        print(f"DEBUG: User joined event triggered for {user.username}") # ADD THIS LINE
         try:
             user_lower = user.username.lower()
-            # Replace with your actual username or ID
             OWNER_USERNAME = "saim06" 
             
-            # --- 1. SPECIAL OWNER WELCOME ---
+            # 1. SPECIAL OWNER WELCOME
             if user_lower == OWNER_USERNAME.lower():
                 await self.highrise.chat(f"👑 Welcome back, Master @{user.username}!")
                 await self.highrise.send_emote("emote-bow", user.id)
-                return # Skip everything else for the owner
+                return
 
-            # --- 2. EXISTING LOGIC (VIPs / Restricted) ---
+            # 2. EXISTING LOGIC (VIPs / Restricted)
             vips = [v.lower() for v in self.cmd.data.get("vips", [])]
             restricted = [r.lower() for r in self.cmd.data.get("restricted", [])]
 
-            # Restricted user handling
             if user_lower in restricted:
                 await self.safe_api_call(self.highrise.teleport(user.id, Position(0, 0, 0, "FrontLeft")))
                 return
 
-            # Public Welcome Logic
             prefix = "👑 VIP" if user_lower in vips else "👋 Hello"
             await self.safe_api_call(self.highrise.chat(f"{prefix} @{user.username}, welcome to the room!"))
 
@@ -70,21 +65,14 @@ class Bot(BaseBot):
 
     async def on_user_leave(self, user: User) -> None:
         try:
-            # Clean up loops specifically for this user
             await self.cmd.stop_user_loops(user)
         except Exception as e:
             logger.error(f"Error in on_user_leave: {e}")
 
     async def on_tip(self, sender: User, receiver: User, tip: Union[CurrencyItem, Item]) -> None:
-        if receiver.id == self.bot_id:
-            print(f"💰 {sender.username} tipped {tip.amount if isinstance(tip, CurrencyItem) else 'item'}")
-
-        # Ensure the try block is indented inside the function
+        # FIX 2: Cleaned up duplicated try/except blocks
         try:
             if hasattr(self.cmd, 'on_tip'):
                 await self.cmd.on_tip(sender, receiver, tip)
-        # Ensure the except block is at the same indentation level as the try
-        except Exception as e:
-            logger.error(f"Error forwarding tip to handler: {e}")
         except Exception as e:
             logger.error(f"Error forwarding tip to handler: {e}")

@@ -17,22 +17,22 @@ async def execute(handler, user, message):
 
     # Logic for /tip all
     if target_input == "all":
-        # DEBUG: Print how many users were fetched
-        print(f"DEBUG: Found {len(room_users)} users in the room.")
+        # Force a fresh fetch of the room users
+        await asyncio.sleep(1) # Give the server a moment to sync
+        room_data = await handler.bot.highrise.get_room_users()
+        room_users = room_data.content
+        
+        print(f"DEBUG: Found {len(room_users)} total users in room.")
         
         await handler.bot.highrise.chat(f"⏳ Tipping everyone {amount} gold...")
         
         count = 0
         for user_obj, _ in room_users:
-            # DEBUG: Print each user being checked
-            print(f"DEBUG: Checking user {user_obj.username} (ID: {user_obj.id})")
-            
-            # Skip the sender and the bot
             if user_obj.id == user.id or user_obj.id == bot_id:
-                print(f"DEBUG: Skipping {user_obj.username}")
                 continue
-                
+            
             try:
+                print(f"DEBUG: Attempting to tip {user_obj.username}")
                 await handler.bot.highrise.tip_user(user_obj.id, item_id)
                 count += 1
                 await asyncio.sleep(1.5)

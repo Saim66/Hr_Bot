@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from highrise import BaseBot, Position, User
+from highrise import BaseBot, Position, User, CurrencyItem, Item, SessionMetadata
 from bot_commands import CommandHandler
 
 # Configure logging
